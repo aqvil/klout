@@ -501,7 +501,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </Link>
-                      <div className="text-sm font-bold text-secondary">{Math.round(item.score.performanceScore)}%</div>
+                      <div className="text-sm font-bold text-black">{Math.round(item.score.performanceScore)}%</div>
                     </li>
                   ))
                 )}

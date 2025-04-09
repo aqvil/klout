@@ -53,7 +53,7 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               <li><Link href="/about"><a className="hover:text-white">About Us</a></Link></li>
-              <li><a href="#" className="hover:text-white">Careers</a></li>
+              <li><a href="https://aqvil.com" target="_blank" rel="noopener noreferrer" className="hover:text-white">Aqvil Fantasy League</a></li>
               <li><a href="#" className="hover:text-white">Press</a></li>
               <li><a href="#" className="hover:text-white">Contact</a></li>
               <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
