@@ -517,185 +517,191 @@ async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
 
 // Fetch players from all major leagues
 export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<void> {
-  console.log(`Starting to fetch players from ${MAJOR_LEAGUES.length} major leagues...`);
+  console.log(`Starting to fetch players from Champions League only...`);
   let playerCount = 0;
   
-  // Calculate how many players to get from each league to reach the desired limit
-  // Allow more players per league if needed to reach the requested limit
-  // Increase the base number to ensure we get enough players even if some API calls fail
-  const playersPerLeague = Math.ceil(limit / MAJOR_LEAGUES.length) + 10;
-  console.log(`Planning to fetch up to ${playersPerLeague} players per league to reach target of ${limit} players`);
+  // Focus only on Champions League (ID: 2) since we're hitting rate limits
+  const championsLeague = MAJOR_LEAGUES.find(league => league.id === 2);
   
-  for (const league of MAJOR_LEAGUES) {
+  if (!championsLeague) {
+    console.log("Champions League configuration not found");
+    return;
+  }
+  
+  // Try to get as many players as possible up to the limit
+  const playersPerLeague = limit + 10; // Add buffer
+  console.log(`Planning to fetch up to ${limit} players from Champions League`);
+  
+  // Process only Champions League
+  const league = championsLeague;
+  
+  console.log(`Fetching teams for ${league.name} (${league.country})...`);
+  const teamIds = await fetchTeamsInLeague(league.id);
+  console.log(`Found ${teamIds.length} teams in ${league.name}`);
+  
+  // If no teams found, exit the function
+  if (teamIds.length === 0) {
+    console.log(`No teams found for ${league.name}, exiting...`);
+    return;
+  }
+  
+  // Process as many teams as needed to reach the target player count
+  // Use Math.min to avoid taking more teams than available
+  const teamsNeeded = Math.min(teamIds.length, Math.ceil(playersPerLeague / 5));
+  console.log(`Processing ${teamsNeeded} teams from ${league.name} to reach player quota`);
+  
+  // Process the teams - prioritize top teams (usually listed first in API responses)
+  const teamsToProcess = teamIds.slice(0, teamsNeeded);
+  
+  for (const teamId of teamsToProcess) {
     if (playerCount >= limit) break;
     
-    console.log(`Fetching teams for ${league.name} (${league.country})...`);
-    const teamIds = await fetchTeamsInLeague(league.id);
-    console.log(`Found ${teamIds.length} teams in ${league.name}`);
+    console.log(`Fetching players for team ${teamId}...`);
+    const players = await fetchPlayersInTeam(teamId);
+    console.log(`Found ${players.length} players in team ${teamId}`);
     
-    // If no teams found, skip this league
-    if (teamIds.length === 0) {
-      console.log(`No teams found for ${league.name}, skipping to next league...`);
+    // Skip if no players found for this team
+    if (players.length === 0) {
+      console.log(`No players found for team ${teamId}, skipping to next team...`);
       continue;
     }
     
-    // Process as many teams as needed to reach the target player count
-    // Use Math.min to avoid taking more teams than available
-    const teamsNeeded = Math.min(teamIds.length, Math.ceil(playersPerLeague / 5));
-    console.log(`Processing ${teamsNeeded} teams from ${league.name} to reach player quota`);
+    // Handle different API response formats and extract rating
+    let processedPlayers = players;
     
-    // Process the teams - prioritize top teams (usually listed first in API responses)
-    const teamsToProcess = teamIds.slice(0, teamsNeeded);
+    // If the response has a nested player object structure
+    if (players.length > 0 && players[0].player) {
+      processedPlayers = players.map((item: any) => ({
+        ...item.player,
+        rating: item.statistics && item.statistics[0] ? 
+          parseFloat(item.statistics[0].games?.rating || '0') : 0,
+        statistics: item.statistics
+      }));
+      console.log(`Extracted ${processedPlayers.length} players from nested format`);
+    }
     
-    for (const teamId of teamsToProcess) {
+    // Get top players by rating - use more players per team to reach the desired limit
+    let playersToImport;
+    const playersWithRating = processedPlayers.filter(p => {
+      // Convert rating to number and ensure it's valid
+      const rating = typeof p.rating === 'string' ? parseFloat(p.rating || '0') : (p.rating || 0);
+      return !isNaN(rating) && rating > 0;
+    });
+    
+    if (playersWithRating.length > 0) {
+      // Sort by rating (highest first)
+      playersToImport = playersWithRating
+        .sort((a, b) => {
+          const ratingA = typeof a.rating === 'string' ? parseFloat(a.rating || '0') : (a.rating || 0);
+          const ratingB = typeof b.rating === 'string' ? parseFloat(b.rating || '0') : (b.rating || 0);
+          return ratingB - ratingA;
+        })
+        // Take as many players as needed to reach limit, but not more than 10 per team
+        .slice(0, Math.min(10, Math.ceil(playersPerLeague / teamsNeeded)));
+      
+      console.log(`Found ${playersToImport.length} rated players to import from team ${teamId}`);
+    } else {
+      // If no players with ratings, take a reasonable subset
+      playersToImport = processedPlayers.slice(0, Math.min(5, processedPlayers.length));
+      console.log(`No players with ratings found, taking ${playersToImport.length} players from team ${teamId}`);
+    }
+    
+    for (const player of playersToImport) {
       if (playerCount >= limit) break;
       
-      console.log(`Fetching players for team ${teamId}...`);
-      const players = await fetchPlayersInTeam(teamId);
-      console.log(`Found ${players.length} players in team ${teamId}`);
-      
-      // Skip if no players found for this team
-      if (players.length === 0) {
-        console.log(`No players found for team ${teamId}, skipping to next team...`);
-        continue;
-      }
-      
-      // Handle different API response formats and extract rating
-      let processedPlayers = players;
-      
-      // If the response has a nested player object structure
-      if (players.length > 0 && players[0].player) {
-        processedPlayers = players.map((item: any) => ({
-          ...item.player,
-          rating: item.statistics && item.statistics[0] ? 
-            parseFloat(item.statistics[0].games?.rating || '0') : 0,
-          statistics: item.statistics
-        }));
-        console.log(`Extracted ${processedPlayers.length} players from nested format`);
-      }
-      
-      // Get top players by rating - use more players per team to reach the desired limit
-      let playersToImport;
-      const playersWithRating = processedPlayers.filter(p => {
-        // Convert rating to number and ensure it's valid
-        const rating = typeof p.rating === 'string' ? parseFloat(p.rating || '0') : (p.rating || 0);
-        return !isNaN(rating) && rating > 0;
-      });
-      
-      if (playersWithRating.length > 0) {
-        // Sort by rating (highest first)
-        playersToImport = playersWithRating
-          .sort((a, b) => {
-            const ratingA = typeof a.rating === 'string' ? parseFloat(a.rating || '0') : (a.rating || 0);
-            const ratingB = typeof b.rating === 'string' ? parseFloat(b.rating || '0') : (b.rating || 0);
-            return ratingB - ratingA;
-          })
-          // Take as many players as needed to reach limit, but not more than 10 per team
-          .slice(0, Math.min(10, Math.ceil(playersPerLeague / teamsNeeded)));
+      console.log(`Processing player: ${player.name}`);
+      try {
+        // Get detailed player stats
+        const playerDetails = await fetchPlayerStatistics(player.id);
         
-        console.log(`Found ${playersToImport.length} rated players to import from team ${teamId}`);
-      } else {
-        // If no players with ratings, take a reasonable subset
-        playersToImport = processedPlayers.slice(0, Math.min(5, processedPlayers.length));
-        console.log(`No players with ratings found, taking ${playersToImport.length} players from team ${teamId}`);
-      }
-      
-      for (const player of playersToImport) {
-        if (playerCount >= limit) break;
-        
-        console.log(`Processing player: ${player.name}`);
-        try {
-          // Get detailed player stats
-          const playerDetails = await fetchPlayerStatistics(player.id);
-          
-          if (!playerDetails) {
-            console.log(`No details found for player ${player.name}, skipping`);
-            continue;
-          }
-          
-          // Get or generate social media info
-          const socialMedia = await getSocialMediaInfo(playerDetails);
-          
-          // Format the player data for our database
-          const playerData: InsertPlayer = {
-            name: playerDetails.name,
-            team: playerDetails.team?.name || 'Unknown Club',
-            country: playerDetails.nationality || 'Unknown',
-            position: playerDetails.position || 'Unknown',
-            profileImg: playerDetails.photo || 'https://example.com/default-player.jpg',
-            bio: `Professional footballer playing for ${playerDetails.team?.name || 'Unknown Club'}`,
-            instagramUrl: socialMedia.instagramUrl,
-            twitterUrl: socialMedia.twitterUrl,
-            facebookUrl: socialMedia.facebookUrl
-          };
-          
-          // Check if the player already exists in our database
-          const existingPlayers = await storage.getAllPlayers();
-          const existingPlayer = existingPlayers.find(p => p.name === playerData.name);
-          
-          let playerId: number;
-          
-          if (existingPlayer) {
-            // Update existing player
-            console.log(`Updating existing player: ${playerData.name}`);
-            const updatedPlayer = await storage.updatePlayer(existingPlayer.id, playerData);
-            playerId = existingPlayer.id;
-          } else {
-            // Create new player
-            console.log(`Creating new player: ${playerData.name}`);
-            const newPlayer = await storage.createPlayer(playerData);
-            playerId = newPlayer.id;
-          }
-          
-          // Extract statistics - handle both formats
-          let statistics: any = null;
-          
-          // Handle both response formats - player details might have statistics
-          // directly or nested in a player object
-          if (playerDetails.statistics && playerDetails.statistics[0]) {
-            statistics = playerDetails.statistics[0];
-          } else if (playerDetails.player && playerDetails.player.statistics && playerDetails.player.statistics[0]) {
-            statistics = playerDetails.player.statistics[0];
-          }
-          
-          // Always create stats even if we don't have game statistics
-          // Social media metrics are still valuable for influence
-          const statsData: InsertPlayerStats = {
-            playerId,
-            goals: statistics?.goals?.total || 0,
-            assists: statistics?.goals?.assists || 0,
-            yellowCards: statistics?.cards?.yellow || 0,
-            redCards: statistics?.cards?.red || 0,
-            instagramFollowers: socialMedia.instagramFollowers,
-            twitterFollowers: socialMedia.twitterFollowers,
-            facebookFollowers: socialMedia.facebookFollowers,
-            fanEngagement: socialMedia.engagementRate
-          };
-            
-          // Check if stats already exist
-          const existingStats = await storage.getPlayerStats(playerId);
-          
-          if (existingStats) {
-            console.log(`Updating stats for player: ${playerData.name}`);
-            await storage.updatePlayerStats(existingStats.id, statsData);
-          } else {
-            console.log(`Creating stats for player: ${playerData.name}`);
-            await storage.createPlayerStats(statsData);
-          }
-          
-          playerCount++;
-          console.log(`Successfully processed player ${playerCount}/${limit}: ${playerData.name}`);
-        } catch (error) {
-          console.error(`Error processing player ${player.name}:`, error);
+        if (!playerDetails) {
+          console.log(`No details found for player ${player.name}, skipping`);
+          continue;
         }
         
-        // Add a delay to avoid hitting API rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Get or generate social media info
+        const socialMedia = await getSocialMediaInfo(playerDetails);
+        
+        // Format the player data for our database
+        const playerData: InsertPlayer = {
+          name: playerDetails.name,
+          team: playerDetails.team?.name || 'Unknown Club',
+          country: playerDetails.nationality || 'Unknown',
+          position: playerDetails.position || 'Unknown',
+          profileImg: playerDetails.photo || 'https://example.com/default-player.jpg',
+          bio: `Professional footballer playing for ${playerDetails.team?.name || 'Unknown Club'}`,
+          instagramUrl: socialMedia.instagramUrl,
+          twitterUrl: socialMedia.twitterUrl,
+          facebookUrl: socialMedia.facebookUrl
+        };
+        
+        // Check if the player already exists in our database
+        const existingPlayers = await storage.getAllPlayers();
+        const existingPlayer = existingPlayers.find(p => p.name === playerData.name);
+        
+        let playerId: number;
+        
+        if (existingPlayer) {
+          // Update existing player
+          console.log(`Updating existing player: ${playerData.name}`);
+          const updatedPlayer = await storage.updatePlayer(existingPlayer.id, playerData);
+          playerId = existingPlayer.id;
+        } else {
+          // Create new player
+          console.log(`Creating new player: ${playerData.name}`);
+          const newPlayer = await storage.createPlayer(playerData);
+          playerId = newPlayer.id;
+        }
+        
+        // Extract statistics - handle both formats
+        let statistics: any = null;
+        
+        // Handle both response formats - player details might have statistics
+        // directly or nested in a player object
+        if (playerDetails.statistics && playerDetails.statistics[0]) {
+          statistics = playerDetails.statistics[0];
+        } else if (playerDetails.player && playerDetails.player.statistics && playerDetails.player.statistics[0]) {
+          statistics = playerDetails.player.statistics[0];
+        }
+        
+        // Always create stats even if we don't have game statistics
+        // Social media metrics are still valuable for influence
+        const statsData: InsertPlayerStats = {
+          playerId,
+          goals: statistics?.goals?.total || 0,
+          assists: statistics?.goals?.assists || 0,
+          yellowCards: statistics?.cards?.yellow || 0,
+          redCards: statistics?.cards?.red || 0,
+          instagramFollowers: socialMedia.instagramFollowers,
+          twitterFollowers: socialMedia.twitterFollowers,
+          facebookFollowers: socialMedia.facebookFollowers,
+          fanEngagement: socialMedia.engagementRate
+        };
+          
+        // Check if stats already exist
+        const existingStats = await storage.getPlayerStats(playerId);
+        
+        if (existingStats) {
+          console.log(`Updating stats for player: ${playerData.name}`);
+          await storage.updatePlayerStats(existingStats.id, statsData);
+        } else {
+          console.log(`Creating stats for player: ${playerData.name}`);
+          await storage.createPlayerStats(statsData);
+        }
+        
+        playerCount++;
+        console.log(`Successfully processed player ${playerCount}/${limit}: ${playerData.name}`);
+      } catch (error) {
+        console.error(`Error processing player ${player.name}:`, error);
       }
+      
+      // Add a delay to avoid hitting API rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
-  console.log(`Finished fetching ${playerCount} players from major leagues`);
+  // End of processing Champions League
+  console.log(`Finished fetching ${playerCount} players from Champions League`);
 }
 
 // Calculate influence scores based on player statistics
