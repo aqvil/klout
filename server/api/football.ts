@@ -68,12 +68,21 @@ export async function testApiConnection(req: Request, res: Response) {
     // Get the API configuration with headers and base URL
     const config = await getApiConfig();
     
+    if (!config.apiKey) {
+      return res.status(400).json({ success: false, message: 'No API key configured' });
+    }
+    
+    // Show the first 4 characters of the API key for verification
+    const apiKeyPreview = config.apiKey.substring(0, 4) + '...';
+    console.log(`Football API Key status: Set (starts with: ${apiKeyPreview})`);
+    
     // Log which endpoint we're using
     const isRapidApi = config.baseUrl === RAPIDAPI_BASE_URL;
     console.log(`Using API endpoint: ${config.baseUrl} (${isRapidApi ? 'RapidAPI' : 'Direct API-Football'})`);
     
     // Make a simple API call to test the connection
-    const response = await fetch(`${config.baseUrl}/leagues`, {
+    console.log('Testing API connection with leagues endpoint...');
+    const response = await fetch(`${config.baseUrl}/leagues?id=39`, {
       method: 'GET',
       headers: config.headers
     });
@@ -88,7 +97,8 @@ export async function testApiConnection(req: Request, res: Response) {
         return res.status(429).json({
           success: false,
           message: 'API rate limit exceeded. The API allows a limited number of requests per day. Please try again later.',
-          rateLimit: true
+          rateLimit: true,
+          apiKeyStatus: `Set (starts with: ${apiKeyPreview})`
         });
       }
       
@@ -101,7 +111,12 @@ export async function testApiConnection(req: Request, res: Response) {
         errorText = 'Could not read error details';
       }
       
-      throw new Error(`API responded with status: ${response.status}. Details: ${errorText.substring(0, 100)}...`);
+      return res.status(500).json({ 
+        success: false, 
+        message: `API responded with status: ${response.status}`,
+        details: errorText.substring(0, 300),
+        apiKeyStatus: `Set (starts with: ${apiKeyPreview})`
+      });
     }
 
     // Parse the response as JSON
@@ -112,13 +127,51 @@ export async function testApiConnection(req: Request, res: Response) {
       throw new Error(`Failed to parse API response as JSON: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
     
+    // Also fetch current season info to verify endpoint format
+    console.log('Testing seasons endpoint to get current season...');
+    let latestSeason = 2023; // Default to 2023 if we can't determine the latest
+    try {
+      const seasonResponse = await fetch(`${config.baseUrl}/leagues/seasons`, {
+        method: 'GET',
+        headers: config.headers
+      });
+      
+      if (seasonResponse.ok) {
+        const seasonData = await seasonResponse.json();
+        if (seasonData.response && Array.isArray(seasonData.response) && seasonData.response.length > 0) {
+          latestSeason = Math.max(...seasonData.response);
+          console.log(`Latest season from API: ${latestSeason}`);
+        } else {
+          console.log('No season data from API, using default: 2023');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching seasons:', error);
+    }
+    
     // Check if we got a valid response with expected structure
-    if (data && typeof data === 'object' && 'response' in data && Array.isArray(data.response) && data.response.length > 0) {
+    if (data && typeof data === 'object' && 'response' in data && Array.isArray(data.response)) {
       console.log('Football API connection successful');
+      
+      // Create a simplified preview of the leagues data
+      const leaguePreview = data.response && data.response.length > 0 
+        ? { 
+            league: data.response[0].league,
+            country: data.response[0].country 
+          } 
+        : 'No leagues data returned';
+        
       res.json({ 
         success: true, 
         message: 'API connection successful',
-        leagues: data.response.slice(0, 5) // Return just a few leagues as proof
+        baseUrl: config.baseUrl,
+        apiKeyStatus: `Set (starts with: ${apiKeyPreview})`,
+        latestSeason,
+        responsePreview: leaguePreview,
+        requestInfo: {
+          url: `${config.baseUrl}/leagues?id=39`,
+          useRapidApi: isRapidApi
+        }
       });
     } else {
       throw new Error('Invalid response format from API');
@@ -133,65 +186,84 @@ export async function testApiConnection(req: Request, res: Response) {
 }
 
 // League IDs for major leagues
+/**
+ * Updated league IDs for 2023 season based on API-Football.
+ * The API might return different IDs for different seasons or change IDs completely.
+ * Here are recent IDs for common leagues.
+ */
 const MAJOR_LEAGUES = [
-  { id: 39, name: 'Premier League', country: 'England' },     // English Premier League
+  { id: 39, name: 'Premier League', country: 'England' },    // English Premier League
   { id: 140, name: 'La Liga', country: 'Spain' },            // Spanish La Liga
   { id: 135, name: 'Serie A', country: 'Italy' },            // Italian Serie A
   { id: 78, name: 'Bundesliga', country: 'Germany' },        // German Bundesliga
   { id: 61, name: 'Ligue 1', country: 'France' },            // French Ligue 1
-  { id: 2, name: 'Champions League', country: 'World' },     // UEFA Champions League
-  { id: 3, name: 'Europa League', country: 'World' },        // UEFA Europa League
+  { id: 2, name: 'Champions League', country: 'Europe' },    // UEFA Champions League
+  { id: 3, name: 'Europa League', country: 'Europe' },       // UEFA Europa League
   { id: 71, name: 'Serie A', country: 'Brazil' },            // Brazilian Serie A
-  { id: 128, name: 'MLS', country: 'USA' },                  // US Major League Soccer
+  { id: 253, name: 'MLS', country: 'USA' },                  // US Major League Soccer (updated ID)
+  { id: 179, name: 'Primera Division', country: 'Argentina' }, // Argentine Liga Profesional
+  { id: 128, name: 'Eredivisie', country: 'Netherlands' },   // Dutch Eredivisie
 ];
 
+// Define API player interface to handle multiple response formats
 interface ApiPlayer {
   id: number;
   name: string;
-  firstname: string;
-  lastname: string;
-  age: number;
-  nationality: string;
-  height: string;
-  weight: string;
-  injured: boolean;
-  photo: string;
-  league: {
+  firstname?: string;
+  lastname?: string;
+  age?: number;
+  nationality?: string;
+  height?: string;
+  weight?: string;
+  injured?: boolean;
+  photo?: string;
+  league?: {
     id: number;
     name: string;
     country: string;
-    logo: string;
-    flag: string;
+    logo?: string;
+    flag?: string;
   };
-  team: {
+  team?: {
     id: number;
     name: string;
-    logo: string;
+    logo?: string;
   };
-  position: string;
-  rating?: number;
+  position?: string;
+  rating?: number | string;
   captain?: boolean;
   statistics?: {
-    games: {
-      appearances: number;
-      minutes: number;
-      position: string;
-      rating?: string;
-      captain: boolean;
+    games?: {
+      appearances?: number;
+      minutes?: number;
+      position?: string;
+      rating?: string | number;
+      captain?: boolean;
     };
-    shots: {
-      total: number;
-      on: number;
+    shots?: {
+      total?: number;
+      on?: number;
     };
-    goals: {
-      total: number;
-      assists: number;
+    goals?: {
+      total?: number;
+      assists?: number;
     };
-    cards: {
-      yellow: number;
-      red: number;
+    cards?: {
+      yellow?: number;
+      red?: number;
     };
   }[];
+  // Support nested player objects in response
+  player?: {
+    id: number;
+    name: string;
+    firstname?: string;
+    lastname?: string;
+    nationality?: string;
+    photo?: string;
+    position?: string;
+    statistics?: any[];
+  };
 }
 
 interface SocialMediaInfo {
@@ -209,16 +281,37 @@ export async function fetchTeamsInLeague(leagueId: number, season: number = 2023
   try {
     const config = await getApiConfig();
     
-    const response = await fetch(`${config.baseUrl}/teams?league=${leagueId}&season=${season}`, {
+    // Log the actual request URL for debugging
+    const url = `${config.baseUrl}/teams?league=${leagueId}&season=${season}`;
+    console.log(`Fetching teams with URL: ${url}`);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: config.headers
     });
 
+    // Log response status
+    console.log(`API response status for teams: ${response.status}`);
+
     if (!response.ok) {
+      // Try to get error details
+      const errorText = await response.text();
+      console.error(`API error response: ${errorText.substring(0, 200)}`);
       throw new Error(`API responded with status: ${response.status}`);
     }
 
     const data = await response.json() as any;
+    
+    // Check if we have results
+    if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
+      console.log(`No teams found for league ${leagueId}, season ${season}`);
+      console.log(`API response: ${JSON.stringify(data).substring(0, 300)}...`);
+      return [];
+    }
+    
+    // Log the first team for debugging
+    console.log(`Found teams in league ${leagueId}. First team: ${JSON.stringify(data.response[0]).substring(0, 200)}...`);
+    
     const teams = data.response.map((team: any) => team.team.id);
     return teams;
   } catch (error) {
@@ -232,17 +325,47 @@ export async function fetchPlayersInTeam(teamId: number, season: number = 2023):
   try {
     const config = await getApiConfig();
     
-    const response = await fetch(`${config.baseUrl}/players?team=${teamId}&season=${season}`, {
+    const url = `${config.baseUrl}/players?team=${teamId}&season=${season}`;
+    console.log(`Fetching players with URL: ${url}`);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: config.headers
     });
 
+    console.log(`API response status for players: ${response.status}`);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error response: ${errorText.substring(0, 200)}`);
       throw new Error(`API responded with status: ${response.status}`);
     }
 
     const data = await response.json() as any;
-    return data.response;
+    
+    // Check if we have results
+    if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
+      console.log(`No players found for team ${teamId}, season ${season}`);
+      console.log(`API response: ${JSON.stringify(data).substring(0, 300)}...`);
+      return [];
+    }
+    
+    // Fix if the response structure is different than expected
+    let playerData = data.response;
+    
+    // Check if this is a "player" wrapped response - API format can vary
+    if (data.response.length > 0 && data.response[0].player) {
+      console.log(`Found ${data.response.length} players in team ${teamId}. First player: ${data.response[0]?.player?.name || 'Unknown'}`);
+    } else {
+      console.log(`Found ${data.response.length} players in team ${teamId}`);
+    }
+    
+    // Log full structure of first player for debugging
+    if (data.response.length > 0) {
+      console.log(`First player response structure: ${JSON.stringify(data.response[0]).substring(0, 500)}...`);
+    }
+    
+    return playerData;
   } catch (error) {
     console.error(`Error fetching players for team ${teamId}:`, error);
     return [];
@@ -254,16 +377,33 @@ export async function fetchPlayerStatistics(playerId: number, season: number = 2
   try {
     const config = await getApiConfig();
     
-    const response = await fetch(`${config.baseUrl}/players?id=${playerId}&season=${season}`, {
+    const url = `${config.baseUrl}/players?id=${playerId}&season=${season}`;
+    console.log(`Fetching player stats with URL: ${url}`);
+    
+    const response = await fetch(url, {
       method: 'GET', 
       headers: config.headers
     });
 
+    console.log(`API response status for player stats: ${response.status}`);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error response: ${errorText.substring(0, 200)}`);
       throw new Error(`API responded with status: ${response.status}`);
     }
 
     const data = await response.json() as any;
+
+    // Check if we have results
+    if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
+      console.log(`No stats found for player ${playerId}, season ${season}`);
+      console.log(`API response: ${JSON.stringify(data).substring(0, 300)}...`);
+      return null;
+    }
+    
+    console.log(`Found stats for player ${playerId}. Name: ${data.response[0]?.player?.name || 'Unknown'}`);
+    
     return data.response[0] || null;
   } catch (error) {
     console.error(`Error fetching stats for player ${playerId}:`, error);
@@ -300,7 +440,11 @@ async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
   };
   
   // Rating impact (players with higher ratings get more followers)
-  const ratingFactor = player.rating ? player.rating / 5 : 1;
+  // Convert rating to number if it's a string (API sometimes returns strings)
+  const ratingValue = typeof player.rating === 'string' ? 
+    parseFloat(player.rating || '0') : 
+    (player.rating || 0);
+  const ratingFactor = ratingValue ? ratingValue / 5 : 1;
   
   const leagueId = player.league?.id || 0;
   const leagueFactor = leagueTiers[leagueId] || 3; // Default for unknown leagues
@@ -332,8 +476,12 @@ async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
   // Calculate engagement rate (inversely proportional to follower count, typically 1-5%)
   const engagementRate = Math.min(8, Math.max(0.8, 15 / Math.pow(Math.log10(instagramFollowers), 2))) * 10;
   
-  // Generate appropriate social media URLs
-  const formattedName = player.name.toLowerCase().replace(/\s+/g, '');
+  // Generate appropriate social media URLs - normalize player names for URLs
+  // Remove special characters, spaces, and accents for better URL formatting
+  const formattedName = player.name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^\w\s]/gi, '') // Remove special characters
+    .replace(/\s+/g, ''); // Remove spaces
   const instagramUrl = `https://instagram.com/${formattedName}`;
   const twitterUrl = `https://twitter.com/${formattedName}`;
   const facebookUrl = `https://facebook.com/${formattedName}`;
@@ -362,7 +510,8 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
     console.log(`Found ${teamIds.length} teams in ${league.name}`);
     
     // Take a subset of teams to avoid API rate limits
-    const teamsToProcess = teamIds.slice(0, 2);
+    // Get up to 5 teams from each league to ensure diversity
+    const teamsToProcess = teamIds.slice(0, 5);
     
     for (const teamId of teamsToProcess) {
       if (playerCount >= limit) break;
@@ -371,11 +520,34 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
       const players = await fetchPlayersInTeam(teamId);
       console.log(`Found ${players.length} players in team ${teamId}`);
       
-      // Take top players from each team based on rating
-      const topPlayers = players
-        .filter(p => p.rating && p.rating > 6.5)
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 3);
+      // Handle different API response formats and extract rating
+      let processedPlayers = players;
+      
+      // If the response has a nested player object structure
+      if (players.length > 0 && players[0].player) {
+        processedPlayers = players.map((item: any) => ({
+          ...item.player,
+          rating: item.statistics && item.statistics[0] ? 
+            parseFloat(item.statistics[0].games?.rating || '0') : 0,
+          statistics: item.statistics
+        }));
+        console.log(`Extracted ${processedPlayers.length} players from nested format`);
+      }
+      
+      // Take top players from each team based on rating - fallback to first players if no ratings
+      let topPlayers;
+      const playersWithRating = processedPlayers.filter(p => p.rating && parseFloat(p.rating) > 6.5);
+      
+      if (playersWithRating.length > 0) {
+        topPlayers = playersWithRating
+          .sort((a, b) => parseFloat(String(b.rating || 0)) - parseFloat(String(a.rating || 0)))
+          .slice(0, 3);
+        console.log(`Found ${topPlayers.length} top rated players`);
+      } else {
+        // If no players with ratings, just take first 3
+        topPlayers = processedPlayers.slice(0, 3);
+        console.log(`No players with ratings found, taking first 3 players`);
+      }
       
       for (const player of topPlayers) {
         if (playerCount >= limit) break;
@@ -424,37 +596,44 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
             playerId = newPlayer.id;
           }
           
-          // Extract statistics
-          const statistics = playerDetails.statistics?.[0];
+          // Extract statistics - handle both formats
+          let statistics: any = null;
           
-          if (statistics) {
-            // Create player stats
-            const statsData: InsertPlayerStats = {
-              playerId,
-              goals: statistics.goals?.total || 0,
-              assists: statistics.goals?.assists || 0,
-              yellowCards: statistics.cards?.yellow || 0,
-              redCards: statistics.cards?.red || 0,
-              instagramFollowers: socialMedia.instagramFollowers,
-              twitterFollowers: socialMedia.twitterFollowers,
-              facebookFollowers: socialMedia.facebookFollowers,
-              fanEngagement: socialMedia.engagementRate
-            };
-            
-            // Check if stats already exist
-            const existingStats = await storage.getPlayerStats(playerId);
-            
-            if (existingStats) {
-              console.log(`Updating stats for player: ${playerData.name}`);
-              await storage.updatePlayerStats(existingStats.id, statsData);
-            } else {
-              console.log(`Creating stats for player: ${playerData.name}`);
-              await storage.createPlayerStats(statsData);
-            }
-            
-            playerCount++;
-            console.log(`Successfully processed player ${playerCount}/${limit}: ${playerData.name}`);
+          // Handle both response formats - player details might have statistics
+          // directly or nested in a player object
+          if (playerDetails.statistics && playerDetails.statistics[0]) {
+            statistics = playerDetails.statistics[0];
+          } else if (playerDetails.player && playerDetails.player.statistics && playerDetails.player.statistics[0]) {
+            statistics = playerDetails.player.statistics[0];
           }
+          
+          // Always create stats even if we don't have game statistics
+          // Social media metrics are still valuable for influence
+          const statsData: InsertPlayerStats = {
+            playerId,
+            goals: statistics?.goals?.total || 0,
+            assists: statistics?.goals?.assists || 0,
+            yellowCards: statistics?.cards?.yellow || 0,
+            redCards: statistics?.cards?.red || 0,
+            instagramFollowers: socialMedia.instagramFollowers,
+            twitterFollowers: socialMedia.twitterFollowers,
+            facebookFollowers: socialMedia.facebookFollowers,
+            fanEngagement: socialMedia.engagementRate
+          };
+            
+          // Check if stats already exist
+          const existingStats = await storage.getPlayerStats(playerId);
+          
+          if (existingStats) {
+            console.log(`Updating stats for player: ${playerData.name}`);
+            await storage.updatePlayerStats(existingStats.id, statsData);
+          } else {
+            console.log(`Creating stats for player: ${playerData.name}`);
+            await storage.createPlayerStats(statsData);
+          }
+          
+          playerCount++;
+          console.log(`Successfully processed player ${playerCount}/${limit}: ${playerData.name}`);
         } catch (error) {
           console.error(`Error processing player ${player.name}:`, error);
         }
