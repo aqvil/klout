@@ -70,7 +70,7 @@ export default function HomePage() {
               </p>
               <div className="flex space-x-4">
                 <Link href="/rankings">
-                  <Button className="bg-secondary hover:bg-secondary-dark text-white px-6 py-3 rounded-lg font-medium">
+                  <Button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium">
                     View Rankings
                   </Button>
                 </Link>
@@ -501,7 +501,7 @@ export default function HomePage() {
                 </li>
               </ul>
               <Link href="/about">
-                <Button className="bg-secondary hover:bg-secondary-dark text-white px-6 py-3 rounded-lg font-medium">
+                <Button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium">
                   Learn More
                 </Button>
               </Link>
