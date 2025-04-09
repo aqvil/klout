@@ -11,7 +11,8 @@ import {
   fetchPlayersFromMajorLeagues, 
   updatePlayerInfluenceScores,
   calculatePlayerScores,
-  testApiConnection
+  testApiConnection,
+  fetchTeamsInLeague
 } from "./api/football";
 import {
   getSetting,
@@ -604,6 +605,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Test Football API connection
   app.get("/api/test-football-api", requireAdmin, testApiConnection);
+  
+  // Public test endpoint for Champions League teams (for debugging without auth)
+  app.get("/api/public/champions-league-teams", async (req, res) => {
+    try {
+      console.log('Fetching Champions League teams with public endpoint');
+      
+      // Call the API function to fetch teams for Champions League (ID: 2)
+      const teams = await fetchTeamsInLeague(2, 2023);
+      
+      if (teams.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No Champions League teams found for season 2023'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: `Found ${teams.length} teams in Champions League`,
+        teams: teams
+      });
+    } catch (error) {
+      console.error('Error fetching Champions League teams:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
+  
+  // Endpoint to fetch teams from a league - admin access
+  app.get("/api/admin/football-teams", requireAdmin, async (req, res) => {
+    try {
+      const leagueId = parseInt(req.query.league as string) || 2; // Default to Champions League (ID: 2)
+      const season = parseInt(req.query.season as string) || 2023; // Default to 2023 season
+      
+      console.log(`Fetching teams for league ${leagueId}, season ${season}`);
+      
+      // Call the API function to fetch teams
+      const teams = await fetchTeamsInLeague(leagueId, season);
+      
+      if (teams.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No teams found for league ${leagueId}, season ${season}`
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: `Found ${teams.length} teams in league ${leagueId}`,
+        teams: teams
+      });
+    } catch (error) {
+      console.error('Error fetching football teams:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
   
   // Import players from major leagues
   app.post("/api/import-players", requireAdmin, async (req, res) => {

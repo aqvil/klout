@@ -26,12 +26,12 @@ async function getApiConfig() {
     }
   }
 
-  // For testing and development, use our known working API key if none is set
+  // Use the provided working API key if none is set
   if (!apiKey || apiKey.length === 0) {
-    // This is the API key that was working to fetch the 20 players
-    apiKey = '9cb031a896ff74e836fecef8c218b493';
+    // This is the API key that is known to work directly with API-Football
+    apiKey = 'e9a4e374040eb7fef4b5ec290b76e039';
     await storage.setSetting(FOOTBALL_API_KEY, apiKey);
-    console.log('Using default API key for development/testing');
+    console.log('Using direct API-Football key for data access');
   }
 
   if (apiKey && apiKey.length > 0) {
@@ -42,20 +42,17 @@ async function getApiConfig() {
   }
 
   // For API-Football.com, we need to use the x-apisports-key header
-  // Various formats are tried here as different API documentation might suggest different formats
   const headers: Record<string, string> = {
-    'x-rapidapi-key': apiKey,
-    'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
     'x-apisports-key': apiKey,
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   };
   
-  console.log('Using RapidAPI endpoint for API-Football access');
+  console.log('Using direct API-Football.com access with API key');
   
-  // Try using RapidAPI endpoint which might work with the same key
+  // Use the direct API-Football endpoint
   return {
-    baseUrl: RAPIDAPI_BASE_URL,
+    baseUrl: DIRECT_API_BASE_URL,
     headers,
     apiKey: apiKey || ''
   };
