@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { importAllPlayers } from "./data/import-players";
+import { startAutomaticUpdates } from "./data/auto-updater";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +68,21 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Initialize the database with players and start automatic updates
+    log('Initializing player database and automatic updates...');
+    
+    // Import players from local database if the database is empty
+    importAllPlayers()
+      .then(result => {
+        log(`Imported ${result.imported} players from local database`);
+        
+        // Start automatic updates for player data (every 60 minutes)
+        startAutomaticUpdates(60);
+        log('Started automatic player updates (interval: 60 minutes)');
+      })
+      .catch(err => {
+        log(`Error initializing player database: ${err.message}`);
+      });
   });
 })();

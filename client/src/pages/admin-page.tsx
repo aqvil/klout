@@ -22,7 +22,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { insertPlayerSchema, insertPlayerStatsSchema, Player, PlayerStats, PlayerWithStats } from "@shared/schema";
-import { RefreshCcw, Save, Trash, UserPlus, Download, BarChart, Users, Zap, Key } from "lucide-react";
+import { RefreshCcw, Save, Trash, UserPlus, Download, BarChart, Users, Zap, Key, Eye, EyeOff } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -218,7 +219,257 @@ function TestApiConnection() {
   );
 }
 
-// Import Player Mutation Component
+// Import Local Players Mutation Component
+function ImportLocalPlayersMutation() {
+  const { toast } = useToast();
+  
+  const importLocalPlayersMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/import-local-players", {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Import started",
+        description: data.message,
+      });
+      
+      // After a short delay, invalidate the players query to refresh the data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+      }, 5000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  return (
+    <div className="space-y-4">
+      <div className="border rounded-lg p-4 bg-neutral-50">
+        <h3 className="text-lg font-medium mb-2">About Local Player Database</h3>
+        <p className="text-sm text-neutral-600 mb-2">
+          This feature imports a curated database of real football players from major leagues 
+          worldwide. It provides complete player profiles with:
+        </p>
+        <ul className="text-sm text-neutral-600 space-y-1 list-disc pl-5 mb-4">
+          <li>Performance statistics (goals, assists, cards)</li>
+          <li>Social media metrics from various platforms</li>
+          <li>Profile information and images</li>
+        </ul>
+        <p className="text-sm text-neutral-600 mb-2">
+          Unlike the Football API, this data isn't rate-limited and will be automatically updated.
+        </p>
+      </div>
+      <Button
+        onClick={() => importLocalPlayersMutation.mutate()}
+        disabled={importLocalPlayersMutation.isPending}
+        className="w-full"
+      >
+        {importLocalPlayersMutation.isPending ? (
+          <>
+            <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            Importing Players...
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            Import Players from Database
+          </>
+        )}
+      </Button>
+      {importLocalPlayersMutation.isSuccess && (
+        <Alert className="bg-green-50">
+          <AlertTitle>Import started successfully</AlertTitle>
+          <AlertDescription>
+            Players are being imported in the background. Data will be available shortly.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+// Auto Update Management Component
+function AutoUpdateManagement() {
+  const { toast } = useToast();
+  const [updateInterval, setUpdateInterval] = useState<number>(60);
+  const [isRunning, setIsRunning] = useState<boolean>(true);
+  
+  // Start automatic updates mutation
+  const startUpdatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/auto-updates/start", { interval: updateInterval });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Automatic updates started",
+        description: data.message,
+      });
+      setIsRunning(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to start updates",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Stop automatic updates mutation
+  const stopUpdatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/auto-updates/stop", {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Automatic updates stopped",
+        description: data.message,
+      });
+      setIsRunning(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to stop updates",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Run updates now mutation
+  const runNowMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/auto-updates/run-now", {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Manual update started",
+        description: data.message,
+      });
+      
+      // After a delay, invalidate queries to refresh the data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+      }, 10000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Manual update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleStartStop = () => {
+    if (isRunning) {
+      stopUpdatesMutation.mutate();
+    } else {
+      startUpdatesMutation.mutate();
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="border rounded-lg p-4 bg-neutral-50">
+        <h3 className="text-lg font-medium mb-2">Automatic Data Updates</h3>
+        <p className="text-sm text-neutral-600 mb-2">
+          Player data is automatically updated to ensure the most current statistics and social metrics:
+        </p>
+        <ul className="text-sm text-neutral-600 space-y-1 list-disc pl-5">
+          <li>Social media metrics (followers, engagement)</li>
+          <li>Performance statistics</li>
+          <li>Influence scores (recalculated with fresh data)</li>
+        </ul>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <Label htmlFor="updateInterval">Update Interval (minutes)</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                id="updateInterval"
+                type="number"
+                min="15"
+                max="1440"
+                value={updateInterval}
+                onChange={(e) => setUpdateInterval(parseInt(e.target.value) || 60)}
+                className="w-24"
+                disabled={startUpdatesMutation.isPending || stopUpdatesMutation.isPending}
+              />
+              <Button
+                onClick={handleStartStop}
+                disabled={startUpdatesMutation.isPending || stopUpdatesMutation.isPending}
+                variant={isRunning ? "destructive" : "default"}
+                className="flex-1"
+              >
+                {startUpdatesMutation.isPending || stopUpdatesMutation.isPending ? (
+                  <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                ) : isRunning ? (
+                  <>Stop Updates</>
+                ) : (
+                  <>Start Updates</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Current Status</Label>
+          <div className={`p-3 rounded-md ${isRunning ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-2 ${isRunning ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+              <span className="text-sm font-medium">
+                {isRunning ? 'Automatic updates are running' : 'Automatic updates are stopped'}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium">Manual Update</h3>
+          <p className="text-sm text-neutral-600">
+            Run an immediate update of all player data without waiting for the automatic interval.
+          </p>
+          <Button
+            onClick={() => runNowMutation.mutate()}
+            disabled={runNowMutation.isPending}
+            variant="outline"
+            className="w-full"
+          >
+            {runNowMutation.isPending ? (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                Updating All Players...
+              </>
+            ) : (
+              <>
+                <BarChart className="mr-2 h-4 w-4" />
+                Update All Players Now
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Import Football API Player Mutation Component
 function ImportPlayersMutation() {
   const { toast } = useToast();
   const [limit, setLimit] = useState(10);
@@ -487,7 +738,17 @@ function ApiKeyManagement() {
                 onClick={toggleApiKeyVisibility}
                 className="ml-2"
               >
-                {isApiKeyHidden ? "Show" : "Hide"}
+                {isApiKeyHidden ? (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Show
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Hide
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1344,59 +1605,65 @@ export default function AdminPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>API Configuration</CardTitle>
+                <CardTitle>Player Database</CardTitle>
                 <CardDescription>
-                  Manage the Football API key and test your connection.
+                  Import player data and manage automatic updates.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <ApiKeyManagement />
-                  
-                  <div className="border rounded-lg p-4 bg-neutral-50">
-                    <h3 className="text-lg font-medium mb-2">About the Football API</h3>
-                    <p className="text-sm text-neutral-600 mb-4">
-                      This application uses the real Football API to fetch authentic player data and statistics.
-                      Before importing players, you should test the API connection to ensure it's working properly.
-                    </p>
-                    <p className="text-sm text-neutral-600">
-                      The API provides data for over 800 football leagues globally, including player profiles, 
-                      match statistics, live scores, and historical data.
-                    </p>
-                  </div>
-                  
-                  <TestApiConnection />
+                  <ImportLocalPlayersMutation />
+                  <Separator />
+                  <AutoUpdateManagement />
                 </div>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Import Players</CardTitle>
+                <CardTitle>API Configuration</CardTitle>
                 <CardDescription>
-                  Import real players from major football leagues using the Football API.
+                  Manage API keys and test external services.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  <ApiKeyManagement />
+                  
+                  <Separator />
+                  
                   <div className="border rounded-lg p-4 bg-neutral-50">
-                    <h3 className="text-lg font-medium mb-2">What This Does</h3>
+                    <h3 className="text-lg font-medium mb-2">About the Football API</h3>
                     <p className="text-sm text-neutral-600 mb-4">
-                      This feature fetches real player data from major football leagues worldwide using
-                      the Football API. It will import:
+                      The application can use the real Football API as an alternative data source.
+                      This API is rate-limited to 50 requests per day on the free tier.
                     </p>
-                    <ul className="text-sm text-neutral-600 space-y-1 list-disc pl-5 mb-4">
-                      <li>Player profiles (name, club, nationality, position, photo)</li>
-                      <li>Performance statistics (goals, assists, cards)</li>
-                      <li>Estimated social media metrics</li>
-                    </ul>
                     <p className="text-sm text-neutral-600">
-                      The import process happens in the background and may take several minutes.
+                      The built-in local player database is recommended for most use cases, but you can
+                      still use the API for testing or specific player lookups.
                     </p>
                   </div>
                   
-                  <div className="space-y-4">
-                    <ImportPlayersMutation />
+                  <TestApiConnection />
+                  
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <div className="font-medium text-amber-800 mb-1">Legacy Import Method</div>
+                    <div className="text-sm text-amber-700 mb-2">
+                      The Football API import feature is limited by API rate restrictions. 
+                      We recommend using the Local Player Database import instead.
+                    </div>
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="show-legacy">
+                        <AccordionTrigger className="text-sm text-amber-800">
+                          Show Football API Import
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pt-4 space-y-4">
+                            <ImportPlayersMutation />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </div>
                 </div>
               </CardContent>

@@ -19,6 +19,8 @@ import {
   getAllSettings,
   FOOTBALL_API_KEY
 } from "./api/settings";
+import { importAllPlayers } from "./data/import-players";
+import { startAutomaticUpdates, stopAutomaticUpdates, updateAllPlayersData } from "./data/auto-updater";
 
 // Helper function to calculate influence scores
 const calculateScores = (stats: any) => {
@@ -462,6 +464,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/settings/:key", requireAdmin, getSetting);
   app.put("/api/settings/:key", requireAdmin, updateSetting);
   app.get("/api/settings", requireAdmin, getAllSettings);
+  
+  // Local player database endpoints
+  
+  // Import players from local database
+  app.post("/api/import-local-players", requireAdmin, async (req, res) => {
+    try {
+      console.log('Starting import from local player database...');
+      
+      // Run import in the background
+      importAllPlayers()
+        .then(result => console.log(`Successfully imported ${result.imported} new players from local database`))
+        .catch(err => console.error('Error importing players from local database:', err));
+      
+      res.status(202).json({ 
+        message: `Started importing players from local database. This process runs in the background and may take several minutes.`
+      });
+    } catch (error) {
+      console.error('Error in import-local-players endpoint:', error);
+      res.status(500).json({ message: "Failed to start player import process" });
+    }
+  });
+  
+  // Start automatic player updates
+  app.post("/api/auto-updates/start", requireAdmin, async (req, res) => {
+    try {
+      // Get interval from request or use default (60 minutes)
+      const { interval = 60 } = req.body;
+      
+      // Validate interval
+      const intervalNum = parseInt(interval as string);
+      if (isNaN(intervalNum) || intervalNum < 15) {
+        return res.status(400).json({ 
+          message: "Invalid interval. Please provide a number >= 15 (minutes)" 
+        });
+      }
+      
+      // Start automatic updates
+      startAutomaticUpdates(intervalNum);
+      
+      res.json({ 
+        message: `Started automatic player updates with interval of ${intervalNum} minutes.` 
+      });
+    } catch (error) {
+      console.error('Error starting automatic updates:', error);
+      res.status(500).json({ message: "Failed to start automatic updates" });
+    }
+  });
+  
+  // Stop automatic player updates
+  app.post("/api/auto-updates/stop", requireAdmin, async (req, res) => {
+    try {
+      stopAutomaticUpdates();
+      
+      res.json({ 
+        message: "Stopped automatic player updates." 
+      });
+    } catch (error) {
+      console.error('Error stopping automatic updates:', error);
+      res.status(500).json({ message: "Failed to stop automatic updates" });
+    }
+  });
+  
+  // Manually run a complete update now
+  app.post("/api/auto-updates/run-now", requireAdmin, async (req, res) => {
+    try {
+      console.log('Starting manual update of all players...');
+      
+      // Run update in the background
+      updateAllPlayersData()
+        .then(result => console.log(`Manual update completed: ${result.updated}/${result.total} players updated`))
+        .catch(err => console.error('Error in manual update:', err));
+      
+      res.status(202).json({ 
+        message: `Started manual update of all players. This process runs in the background and may take several minutes.`
+      });
+    } catch (error) {
+      console.error('Error in run-now endpoint:', error);
+      res.status(500).json({ message: "Failed to start manual update" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
