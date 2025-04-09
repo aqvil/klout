@@ -11,13 +11,15 @@ export function useFollow(playerId: number) {
   
   // Check if user is following this player
   const { 
-    data: isFollowing = false, 
+    data: followCheckData, 
     isLoading: isCheckingFollow,
     refetch: refetchFollowStatus 
-  } = useQuery<boolean>({
+  } = useQuery<{isFollowing: boolean, playerId: number}>({
     queryKey: [`/api/follows/check/${playerId}`],
     enabled: !!user && !!playerId,
   });
+  
+  const isFollowing = followCheckData?.isFollowing ?? false;
 
   // Follow a player
   const followMutation = useMutation({
@@ -46,8 +48,8 @@ export function useFollow(playerId: number) {
   // Unfollow a player
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/follows/${playerId}`);
-      return await res.json();
+      await apiRequest("DELETE", `/api/follows/${playerId}`);
+      return { success: true };
     },
     onSuccess: () => {
       // Invalidate and refetch
