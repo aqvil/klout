@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Menu, Search, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { Logo } from "@/components/ui/logo";
+import { KloutLogo } from "@/components/ui/logo";
 
 export default function Header() {
   const [location] = useLocation();
@@ -25,7 +25,9 @@ export default function Header() {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Logo className="text-white" size="md" />
+              <Link href="/">
+                <KloutLogo variant="light" size="md" />
+              </Link>
             </div>
             <nav className="hidden md:ml-10 md:flex space-x-8">
               <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>

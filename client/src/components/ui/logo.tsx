@@ -1,99 +1,73 @@
-import { FC } from 'react';
-import { Link } from 'wouter';
+import React from 'react';
 
 interface LogoProps {
-  className?: string;
+  variant?: 'default' | 'light' | 'dark';
   size?: 'sm' | 'md' | 'lg';
-  variant?: 'full' | 'icon';
+  includeText?: boolean;
 }
 
-export const Logo: FC<LogoProps> = ({ 
-  className = '', 
+export function KloutLogo({ 
+  variant = 'default', 
   size = 'md', 
-  variant = 'full' 
-}) => {
-  // Map sizes to actual pixel values
-  const sizeMap = {
-    sm: variant === 'full' ? 'h-6' : 'h-8',
-    md: variant === 'full' ? 'h-8' : 'h-10',
-    lg: variant === 'full' ? 'h-10' : 'h-12'
+  includeText = true 
+}: LogoProps) {
+  const getSize = () => {
+    switch (size) {
+      case 'sm': return { logoSize: 24, fontSize: 'text-lg' };
+      case 'lg': return { logoSize: 40, fontSize: 'text-3xl' };
+      default: return { logoSize: 32, fontSize: 'text-2xl' };
+    }
   };
 
+  const getColors = () => {
+    switch (variant) {
+      case 'light': return { primary: 'white', secondary: 'white' };
+      case 'dark': return { primary: '#121212', secondary: '#121212' };
+      default: return { primary: '#3B82F6', secondary: '#6D28D9' };
+    }
+  };
+
+  const { logoSize, fontSize } = getSize();
+  const { primary, secondary } = getColors();
+
   return (
-    <Link href="/">
-      <div className={`inline-flex items-center cursor-pointer ${className}`}>
-        {variant === 'full' ? (
-          <div className="flex items-center">
-            <div className={`${sizeMap[size]} relative`}>
-              <svg 
-                viewBox="0 0 120 40" 
-                xmlns="http://www.w3.org/2000/svg"
-                className={`${sizeMap[size]}`}
-                fill="none"
-              >
-                {/* K */}
-                <path 
-                  d="M15 5H5V35H15V22L25 35H37L23 18L37 5H25L15 18V5Z" 
-                  fill="currentColor" 
-                  className="text-primary"
-                />
-                {/* L */}
-                <path 
-                  d="M40 5H50V35H70V25H50V5H40Z" 
-                  fill="currentColor"
-                />
-                {/* O */}
-                <path 
-                  d="M72 20C72 10 78 4 88 4C98 4 104 10 104 20C104 30 98 36 88 36C78 36 72 30 72 20ZM88 28C93 28 95 25 95 20C95 15 93 12 88 12C83 12 81 15 81 20C81 25 83 28 88 28Z" 
-                  fill="currentColor"
-                />
-                {/* U */}
-                <path 
-                  d="M107 5H117V25C117 27 117 28 119 28C121 28 121 27 121 25V5H131V25C131 32 127 36 119 36C111 36 107 32 107 25V5Z" 
-                  fill="currentColor"
-                />
-                {/* Soccer ball icon */}
-                <circle 
-                  cx="88" 
-                  cy="20" 
-                  r="6" 
-                  fill="currentColor" 
-                  className="text-primary" 
-                  opacity="0.7"
-                />
-              </svg>
-            </div>
-            <span className={`ml-2 font-bold tracking-tight ${size === 'sm' ? 'text-lg' : size === 'md' ? 'text-xl' : 'text-2xl'}`}>
-              klout<span className="text-primary">.soccer</span>
-            </span>
-          </div>
-        ) : (
-          <div className={`${sizeMap[size]} relative`}>
-            <svg 
-              viewBox="0 0 40 40" 
-              xmlns="http://www.w3.org/2000/svg"
-              className={`${sizeMap[size]}`}
-              fill="none"
-            >
-              {/* K icon */}
-              <path 
-                d="M15 5H5V35H15V22L25 35H37L23 18L37 5H25L15 18V5Z" 
-                fill="currentColor" 
-                className="text-primary"
-              />
-              {/* Soccer ball icon */}
-              <circle 
-                cx="30" 
-                cy="30" 
-                r="6" 
-                fill="currentColor" 
-                className="text-primary" 
-                opacity="0.7"
-              />
-            </svg>
-          </div>
-        )}
+    <div className="flex items-center">
+      <div className="mr-2">
+        <svg 
+          width={logoSize} 
+          height={logoSize} 
+          viewBox="0 0 64 64" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M32 0C14.327 0 0 14.327 0 32C0 49.673 14.327 64 32 64C49.673 64 64 49.673 64 32C64 14.327 49.673 0 32 0ZM32 8C45.25 8 56 18.75 56 32C56 45.25 45.25 56 32 56C18.75 56 8 45.25 8 32C8 18.75 18.75 8 32 8Z" 
+            fill={primary} 
+          />
+          <path 
+            d="M38 20H26C24.895 20 24 20.895 24 22V42C24 43.105 24.895 44 26 44H38C39.105 44 40 43.105 40 42V22C40 20.895 39.105 20 38 20ZM36 40H28V24H36V40Z" 
+            fill={secondary} 
+          />
+          <path 
+            d="M46 16H42C40.895 16 40 16.895 40 18V22C40 23.105 40.895 24 42 24H46C47.105 24 48 23.105 48 22V18C48 16.895 47.105 16 46 16Z" 
+            fill={secondary} 
+          />
+          <path 
+            d="M46 28H42C40.895 28 40 28.895 40 30V46C40 47.105 40.895 48 42 48H46C47.105 48 48 47.105 48 46V30C48 28.895 47.105 28 46 28Z" 
+            fill={secondary} 
+          />
+          <path 
+            d="M22 28H18C16.895 28 16 28.895 16 30V46C16 47.105 16.895 48 18 48H22C23.105 48 24 47.105 24 46V30C24 28.895 23.105 28 22 28Z" 
+            fill={secondary} 
+          />
+        </svg>
       </div>
-    </Link>
+      {includeText && (
+        <div className={`font-bold tracking-tight ${fontSize}`}>
+          <span style={{ color: primary }}>Klout</span>
+          <span style={{ color: secondary }} className="font-light">.soccer</span>
+        </div>
+      )}
+    </div>
   );
-};
+}

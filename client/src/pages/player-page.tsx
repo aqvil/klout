@@ -7,117 +7,30 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { FaTwitter, FaInstagram, FaFacebook } from "react-icons/fa";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PlayerImage } from "@/components/ui/player-image";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
-
-// Real chart function using player score data
-const drawChart = (canvasRef: React.RefObject<HTMLCanvasElement>, scoreData: Score[] = []) => {
-  if (!canvasRef.current) return;
-  
-  const ctx = canvasRef.current.getContext('2d');
-  if (!ctx) return;
-  
-  // Simple placeholder visualization
-  const width = canvasRef.current.width;
-  const height = canvasRef.current.height;
-  
-  ctx.clearRect(0, 0, width, height);
-  
-  // Fill background
-  ctx.fillStyle = "#f5f7fa";
-  ctx.fillRect(0, 0, width, height);
-  
-  // Draw grid lines
-  ctx.strokeStyle = "#e2e8f0";
-  ctx.beginPath();
-  for (let i = 0; i <= 5; i++) {
-    const y = height - (i / 5) * height;
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-  }
-  
-  for (let i = 0; i <= 12; i++) {
-    const x = (i / 12) * width;
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-  }
-  ctx.stroke();
-  
-  // Use the actual score data
-  const scores = scoreData.length > 0 
-    ? scoreData.map(score => score.totalScore) 
-    : []; // Handled by component
-  
-  // Add labels for axis
-  ctx.fillStyle = "#6b7280";
-  ctx.font = "10px Inter, sans-serif";
-  ctx.textAlign = "right";
-  
-  for (let i = 0; i <= 5; i++) {
-    const y = height - (i / 5) * height;
-    const label = (i * 20).toString();
-    ctx.fillText(label, 20, y + 4);
-  }
-  
-  // Draw line
-  ctx.strokeStyle = "#0F4C81";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  
-  const xStep = scores.length > 1 ? width / (scores.length - 1) : width / 2;
-  
-  for (let i = 0; i < scores.length; i++) {
-    const x = i * xStep;
-    const y = height - (scores[i] / 100) * height;
-    
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  }
-  
-  ctx.stroke();
-  
-  // Add points
-  ctx.fillStyle = "#0F4C81";
-  for (let i = 0; i < scores.length; i++) {
-    const x = i * xStep;
-    const y = height - (scores[i] / 100) * height;
-    
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Add date labels if we have multiple points
-  if (scores.length > 1) {
-    ctx.fillStyle = "#6b7280";
-    ctx.font = "10px Inter, sans-serif";
-    ctx.textAlign = "center";
-    
-    // Add just a few labels to avoid clutter
-    const labelsToShow = Math.min(6, scores.length);
-    const step = Math.floor(scores.length / labelsToShow);
-    
-    for (let i = 0; i < scores.length; i += step) {
-      if (i < scores.length) {
-        const x = i * xStep;
-        // Format date nicely if available, or just show index
-        const label = scoreData[i]?.date 
-          ? new Date(scoreData[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : `Point ${i+1}`;
-        ctx.fillText(label, x, height - 5);
-      }
-    }
-  }
-};
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  BarChart,
+  Bar
+} from 'recharts';
 
 export default function PlayerPage() {
   const { id } = useParams<{ id: string }>();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const numberId = Number(id);
 
   const { data: playerDetails, isLoading: isLoadingPlayer } = useQuery<PlayerWithStats>({
@@ -132,12 +45,18 @@ export default function PlayerPage() {
   
   const isLoading = isLoadingPlayer || isLoadingScores;
 
-  // Draw chart when component mounts or score history changes
-  useEffect(() => {
-    if (playerDetails && canvasRef.current) {
-      drawChart(canvasRef, scoreHistory || []);
-    }
-  }, [playerDetails, scoreHistory]);
+  // Prepare chart data for recharts
+  const chartData = useMemo(() => {
+    if (!scoreHistory || scoreHistory.length === 0) return [];
+    
+    return scoreHistory.map(score => ({
+      date: score.date ? new Date(score.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '',
+      totalScore: score.totalScore,
+      socialScore: score.socialScore,
+      performanceScore: score.performanceScore,
+      engagementScore: score.engagementScore
+    }));
+  }, [scoreHistory]);
   
   // Format follower count
   const formatFollowers = (count: number): string => {
@@ -305,12 +224,60 @@ export default function PlayerPage() {
                     <Skeleton className="h-4/5 w-full rounded-lg" />
                   </div>
                 ) : (
-                  <canvas 
-                    ref={canvasRef} 
-                    width={800} 
-                    height={280} 
-                    className="w-full h-full"
-                  />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="totalScoreGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="socialScoreGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6D28D9" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#6D28D9" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tickMargin={10}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tickMargin={10}
+                        domain={[0, 100]}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#FFF', 
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          border: 'none'
+                        }}
+                        labelStyle={{ fontWeight: 'bold', color: '#111827' }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="totalScore" 
+                        stroke="#3B82F6" 
+                        fill="url(#totalScoreGradient)" 
+                        strokeWidth={3}
+                        name="Total Score"
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="socialScore" 
+                        stroke="#6D28D9" 
+                        fill="url(#socialScoreGradient)" 
+                        strokeWidth={2}
+                        name="Social Score"
+                        opacity={0.7}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>
@@ -464,64 +431,110 @@ export default function PlayerPage() {
             
             <div className="mt-8 pt-4 border-t border-neutral-200">
               <h3 className="text-lg font-semibold text-neutral-800 mb-4">Score Breakdown</h3>
-              {isLoading ? (
-                <div className="space-y-4">
-                  {Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="flex items-center">
-                      <Skeleton className="h-5 w-32 mr-4" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-10 ml-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {isLoading ? (
+                  <>
+                    <div className="space-y-4">
+                      {Array(4).fill(0).map((_, i) => (
+                        <div key={i} className="flex items-center">
+                          <Skeleton className="h-5 w-32 mr-4" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-10 ml-4" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <span className="text-sm font-medium text-neutral-700 w-32">Overall Score:</span>
-                      <ProgressBar 
-                        value={playerDetails?.score.totalScore || 0} 
-                        color="primary" 
-                        size="lg"
-                        className="flex-grow"
-                      />
+                    <div className="flex items-center justify-center">
+                      <Skeleton className="h-64 w-64 rounded-full" />
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <span className="text-sm font-medium text-neutral-700 w-32">Social Media:</span>
-                      <ProgressBar 
-                        value={playerDetails?.score.socialScore || 0} 
-                        color="secondary" 
-                        size="md"
-                        className="flex-grow"
-                      />
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <span className="text-sm font-medium text-neutral-700 w-32">Overall Score:</span>
+                          <ProgressBar 
+                            value={playerDetails?.score.totalScore || 0} 
+                            color="primary" 
+                            size="lg"
+                            className="flex-grow"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <span className="text-sm font-medium text-neutral-700 w-32">Social Media:</span>
+                          <ProgressBar 
+                            value={playerDetails?.score.socialScore || 0} 
+                            color="secondary" 
+                            size="md"
+                            className="flex-grow"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <span className="text-sm font-medium text-neutral-700 w-32">Game Performance:</span>
+                          <ProgressBar 
+                            value={playerDetails?.score.performanceScore || 0} 
+                            color="secondary" 
+                            size="md"
+                            className="flex-grow"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <span className="text-sm font-medium text-neutral-700 w-32">Fan Engagement:</span>
+                          <ProgressBar 
+                            value={playerDetails?.score.engagementScore || 0} 
+                            color="secondary" 
+                            size="md"
+                            className="flex-grow"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <span className="text-sm font-medium text-neutral-700 w-32">Game Performance:</span>
-                      <ProgressBar 
-                        value={playerDetails?.score.performanceScore || 0} 
-                        color="secondary" 
-                        size="md"
-                        className="flex-grow"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <span className="text-sm font-medium text-neutral-700 w-32">Fan Engagement:</span>
-                      <ProgressBar 
-                        value={playerDetails?.score.engagementScore || 0} 
-                        color="secondary" 
-                        size="md"
-                        className="flex-grow"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+                    {playerDetails && (
+                      <div className="h-64 flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Social', value: playerDetails.score.socialScore },
+                                { name: 'Performance', value: playerDetails.score.performanceScore },
+                                { name: 'Engagement', value: playerDetails.score.engagementScore }
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={3}
+                              dataKey="value"
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              labelLine={false}
+                            >
+                              <Cell fill="#3B82F6" />
+                              <Cell fill="#6D28D9" />
+                              <Cell fill="#8B5CF6" />
+                            </Pie>
+                            <Tooltip 
+                              formatter={(value) => [`${value} points`, '']}
+                              contentStyle={{ 
+                                backgroundColor: '#FFF', 
+                                borderRadius: '0.5rem',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                border: 'none'
+                              }}
+                            />
+                            <Legend verticalAlign="bottom" />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
