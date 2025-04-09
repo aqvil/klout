@@ -6,11 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { FaTwitter, FaInstagram, FaFacebook } from "react-icons/fa";
+import { FaTwitter, FaInstagram, FaFacebook, FaHeart } from "react-icons/fa";
 import { useEffect, useMemo, useState } from "react";
 import { PlayerImage } from "@/components/ui/player-image";
 import { Link } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useFollow } from "@/hooks/use-follow";
 import { 
   LineChart, 
   Line, 
@@ -75,6 +77,10 @@ export default function PlayerPage() {
       return failureCount < 2 && error?.response?.status !== 404;
     }
   });
+  
+  // Initialize follow hook to handle follow/unfollow functionality
+  const { user } = useAuth();
+  const { isFollowing, isLoading: isLoadingFollow, toggleFollow } = useFollow(playerId || 0);
   
   const isLoading = isLoadingPlayer || isLoadingScores;
 
@@ -252,6 +258,31 @@ export default function PlayerPage() {
                   </a>
                 )}
               </div>
+              
+              {/* Follow Button */}
+              <Button
+                onClick={toggleFollow}
+                disabled={isLoadingFollow}
+                variant={isFollowing ? "outline" : "default"}
+                className={`mb-6 w-full ${isFollowing ? 'border-red-500 text-red-500 hover:bg-red-50' : ''}`}
+              >
+                {isLoadingFollow ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : isFollowing ? (
+                  <>
+                    <FaHeart className="mr-2 h-4 w-4" />
+                    Unfollow
+                  </>
+                ) : (
+                  <>
+                    <FaHeart className="mr-2 h-4 w-4" />
+                    Follow
+                  </>
+                )}
+              </Button>
               
               <div className="w-full flex justify-between text-sm border-t border-neutral-200 pt-4">
                 {isLoading ? (

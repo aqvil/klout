@@ -82,7 +82,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container max-w-6xl py-10">
+    <div className="container max-w-6xl mx-auto py-10">
       <div className="space-y-8">
         <div className="flex items-center gap-3 border-b pb-5">
           <User className="h-7 w-7 text-primary" />
