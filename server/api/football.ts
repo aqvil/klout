@@ -33,27 +33,19 @@ async function getApiConfig() {
     console.log(`Football API Key status: Set (starts with: ${apiKey.substring(0, 4)}...)`);
   }
 
-  // Determine if this is a RapidAPI key (usually longer) or direct API-Football key
-  const isRapidApiKey = apiKey && apiKey.length > 40;
-  
+  // For API-Football.com, we need to use the x-apisports-key header
+  // Let's prefer direct API access for better reliability
   const headers: Record<string, string> = {};
   
-  if (isRapidApiKey) {
-    headers['X-RapidAPI-Key'] = apiKey || '';
-    headers['X-RapidAPI-Host'] = 'api-football-v1.p.rapidapi.com';
-    return {
-      baseUrl: RAPIDAPI_BASE_URL,
-      headers,
-      apiKey: apiKey || ''
-    };
-  } else {
-    headers['x-apisports-key'] = apiKey || '';
-    return {
-      baseUrl: DIRECT_API_BASE_URL,
-      headers,
-      apiKey: apiKey || ''
-    };
-  }
+  // API-Football.com direct API
+  headers['x-apisports-key'] = apiKey || '';
+  console.log('Using direct API-Football.com access with API key');
+  
+  return {
+    baseUrl: DIRECT_API_BASE_URL,
+    headers,
+    apiKey: apiKey || ''
+  };
 };
 
 // Legacy function to maintain compatibility - returns only headers
@@ -79,8 +71,15 @@ export async function testApiConnection(req: Request, res: Response) {
     const apiKeyPreview = apiKey.substring(0, 4) + '...';
     console.log(`Football API Key status: Set (starts with: ${apiKeyPreview})`);
     
+    // Return detailed info about the apiKey
+    console.log(`API Key length: ${apiKey.length} characters`);
+    console.log(`API Key type: ${apiKey.length > 40 ? 'RapidAPI' : 'Direct API-Football'}`);
+    
     // Log which endpoint we're using
     const isRapidApi = config.baseUrl === RAPIDAPI_BASE_URL;
+    
+    // Debug the exact headers being sent
+    console.log('API Request Headers:', JSON.stringify(config.headers, null, 2));
     console.log(`Using API endpoint: ${config.baseUrl} (${isRapidApi ? 'RapidAPI' : 'Direct API-Football'})`);
     
     // Make a simple API call to test the connection
@@ -505,6 +504,11 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
   console.log(`Starting to fetch players from ${MAJOR_LEAGUES.length} major leagues...`);
   let playerCount = 0;
   
+  // Calculate how many players to get from each league to reach the desired limit
+  // Allow more players per league if needed to reach the requested limit
+  const playersPerLeague = Math.ceil(limit / MAJOR_LEAGUES.length) + 5;
+  console.log(`Planning to fetch up to ${playersPerLeague} players per league to reach target of ${limit} players`);
+  
   for (const league of MAJOR_LEAGUES) {
     if (playerCount >= limit) break;
     
@@ -512,9 +516,19 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
     const teamIds = await fetchTeamsInLeague(league.id);
     console.log(`Found ${teamIds.length} teams in ${league.name}`);
     
-    // Take a subset of teams to avoid API rate limits
-    // Get up to 5 teams from each league to ensure diversity
-    const teamsToProcess = teamIds.slice(0, 5);
+    // If no teams found, skip this league
+    if (teamIds.length === 0) {
+      console.log(`No teams found for ${league.name}, skipping to next league...`);
+      continue;
+    }
+    
+    // Process as many teams as needed to reach the target player count
+    // Use Math.min to avoid taking more teams than available
+    const teamsNeeded = Math.min(teamIds.length, Math.ceil(playersPerLeague / 5));
+    console.log(`Processing ${teamsNeeded} teams from ${league.name} to reach player quota`);
+    
+    // Process the teams - prioritize top teams (usually listed first in API responses)
+    const teamsToProcess = teamIds.slice(0, teamsNeeded);
     
     for (const teamId of teamsToProcess) {
       if (playerCount >= limit) break;
@@ -522,6 +536,12 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
       console.log(`Fetching players for team ${teamId}...`);
       const players = await fetchPlayersInTeam(teamId);
       console.log(`Found ${players.length} players in team ${teamId}`);
+      
+      // Skip if no players found for this team
+      if (players.length === 0) {
+        console.log(`No players found for team ${teamId}, skipping to next team...`);
+        continue;
+      }
       
       // Handle different API response formats and extract rating
       let processedPlayers = players;
@@ -537,29 +557,33 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
         console.log(`Extracted ${processedPlayers.length} players from nested format`);
       }
       
-      // Take top players from each team based on rating - fallback to first players if no ratings
-      let topPlayers;
+      // Get top players by rating - use more players per team to reach the desired limit
+      let playersToImport;
       const playersWithRating = processedPlayers.filter(p => {
-        const rating = typeof p.rating === 'string' ? parseFloat(p.rating) : p.rating;
-        return rating && rating > 6.5;
+        // Convert rating to number and ensure it's valid
+        const rating = typeof p.rating === 'string' ? parseFloat(p.rating || '0') : (p.rating || 0);
+        return !isNaN(rating) && rating > 0;
       });
       
       if (playersWithRating.length > 0) {
-        topPlayers = playersWithRating
+        // Sort by rating (highest first)
+        playersToImport = playersWithRating
           .sort((a, b) => {
-            const ratingA = typeof a.rating === 'string' ? parseFloat(a.rating) : (a.rating || 0);
-            const ratingB = typeof b.rating === 'string' ? parseFloat(b.rating) : (b.rating || 0);
+            const ratingA = typeof a.rating === 'string' ? parseFloat(a.rating || '0') : (a.rating || 0);
+            const ratingB = typeof b.rating === 'string' ? parseFloat(b.rating || '0') : (b.rating || 0);
             return ratingB - ratingA;
           })
-          .slice(0, 3);
-        console.log(`Found ${topPlayers.length} top rated players`);
+          // Take as many players as needed to reach limit, but not more than 10 per team
+          .slice(0, Math.min(10, Math.ceil(playersPerLeague / teamsNeeded)));
+        
+        console.log(`Found ${playersToImport.length} rated players to import from team ${teamId}`);
       } else {
-        // If no players with ratings, just take first 3
-        topPlayers = processedPlayers.slice(0, 3);
-        console.log(`No players with ratings found, taking first 3 players`);
+        // If no players with ratings, take a reasonable subset
+        playersToImport = processedPlayers.slice(0, Math.min(5, processedPlayers.length));
+        console.log(`No players with ratings found, taking ${playersToImport.length} players from team ${teamId}`);
       }
       
-      for (const player of topPlayers) {
+      for (const player of playersToImport) {
         if (playerCount >= limit) break;
         
         console.log(`Processing player: ${player.name}`);

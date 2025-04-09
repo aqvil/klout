@@ -82,6 +82,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
   
+  // API Debugging Endpoint - Test the API key directly
+  app.get("/api/debug-football-key", requireAdmin, async (req, res) => {
+    try {
+      // Get the API key from database
+      const apiKey = await storage.getSetting(FOOTBALL_API_KEY);
+      
+      if (!apiKey) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No API key found in database'
+        });
+      }
+
+      // Make a direct request to the API
+      const url = 'https://v3.football.api-sports.io/status';
+      const headers = { 'x-apisports-key': apiKey };
+      
+      console.log('Testing Football API with key:', apiKey.substring(0, 4) + '...');
+      console.log('Request URL:', url);
+      console.log('Headers:', JSON.stringify(headers));
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: headers
+      });
+      
+      console.log('API Response Status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        return res.status(500).json({
+          success: false,
+          message: `API responded with status: ${response.status}`,
+          error: errorText.substring(0, 300),
+          apiKey: {
+            preview: apiKey.substring(0, 4) + '...',
+            length: apiKey.length
+          }
+        });
+      }
+      
+      // Parse the response
+      const data = await response.json();
+      
+      return res.json({
+        success: true,
+        message: 'API connection successful',
+        response: data,
+        apiKey: {
+          preview: apiKey.substring(0, 4) + '...',
+          length: apiKey.length
+        }
+      });
+    } catch (error) {
+      console.error('Error testing API key:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Error testing API key: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
+  
   // API endpoints
   // Players endpoints
   app.get("/api/players", async (req, res) => {
@@ -393,11 +456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { limit = 10 } = req.body;
       
-      // Validate limit
+      // Validate limit - allow up to 200 players
       const limitNum = parseInt(limit as string);
-      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 50) {
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 200) {
         return res.status(400).json({ 
-          message: "Invalid limit. Please provide a number between 1 and 50" 
+          message: "Invalid limit. Please provide a number between 1 and 200" 
         });
       }
       

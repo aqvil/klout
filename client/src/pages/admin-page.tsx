@@ -481,8 +481,8 @@ function ImportPlayersMutation() {
       const limitValue = inputEl ? parseInt(inputEl.value) || 10 : limit;
       
       // Validate the limit
-      if (limitValue < 1 || limitValue > 50) {
-        throw new Error("Please enter a number between 1 and 50");
+      if (limitValue < 1 || limitValue > 200) {
+        throw new Error("Please enter a number between 1 and 200");
       }
       
       const response = await apiRequest("POST", "/api/import-players", { limit: limitValue });
@@ -516,8 +516,9 @@ function ImportPlayersMutation() {
         <div className="text-sm text-yellow-700">
           The Football API has a daily limit of 50 requests. To conserve requests:
           <ul className="list-disc pl-5 mt-2">
-            <li>Start with just 2-3 players to test the import</li>
+            <li>Start with 10-20 players to test the import</li>
             <li>Each player requires multiple API calls</li>
+            <li>You can import up to 200 players, but it will use more API calls</li>
             <li>If you hit rate limits, you'll need to wait until tomorrow</li>
           </ul>
         </div>
@@ -528,8 +529,8 @@ function ImportPlayersMutation() {
           id="playerLimitInput"
           type="number"
           min="1"
-          max="5"
-          defaultValue="2"
+          max="200"
+          defaultValue="10"
           ref={setInputEl}
           className="w-24"
         />
