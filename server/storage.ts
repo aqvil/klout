@@ -1,4 +1,4 @@
-import { users, type User, type InsertUser, players, type Player, type InsertPlayer, playerStats, type PlayerStats, type InsertPlayerStats, scores, type Score, type InsertScore, type PlayerWithStats } from "@shared/schema";
+import { users, type User, type InsertUser, players, type Player, type InsertPlayer, playerStats, type PlayerStats, type InsertPlayerStats, scores, type Score, type InsertScore, type PlayerWithStats, settings } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
@@ -39,6 +39,10 @@ export interface IStorage {
   getPlayerWithStatsAndScores(playerId: number): Promise<PlayerWithStats | undefined>;
   getTopPlayersByCategory(category: 'social' | 'performance' | 'engagement', limit: number): Promise<PlayerWithStats[]>;
   
+  // Settings operations
+  getSetting(key: string): Promise<string | null>;
+  setSetting(key: string, value: string): Promise<void>;
+  
   // Session store
   sessionStore: any;
 }
@@ -49,6 +53,7 @@ export class MemStorage implements IStorage {
   private players: Map<number, Player>;
   private playerStats: Map<number, PlayerStats>;
   private scores: Map<number, Score[]>;
+  private settings: Map<string, string>;
   private currentUserId: number;
   private currentPlayerId: number;
   private currentStatsId: number;
@@ -60,6 +65,7 @@ export class MemStorage implements IStorage {
     this.players = new Map();
     this.playerStats = new Map();
     this.scores = new Map();
+    this.settings = new Map();
     this.currentUserId = 1;
     this.currentPlayerId = 1;
     this.currentStatsId = 1;
@@ -280,6 +286,15 @@ export class MemStorage implements IStorage {
     
     return sortedPlayers.slice(0, limit);
   }
+  
+  // Settings methods
+  async getSetting(key: string): Promise<string | null> {
+    return this.settings.get(key) || null;
+  }
+  
+  async setSetting(key: string, value: string): Promise<void> {
+    this.settings.set(key, value);
+  }
 }
 
 // Database storage implementation
@@ -483,6 +498,36 @@ export class DatabaseStorage implements IStorage {
     }
     
     return sortedPlayers.slice(0, limit);
+  }
+  
+  // Settings methods
+  async getSetting(key: string): Promise<string | null> {
+    const [setting] = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.key, key));
+    return setting?.value || null;
+  }
+  
+  async setSetting(key: string, value: string): Promise<void> {
+    // Check if the setting already exists
+    const existingSetting = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.key, key));
+    
+    if (existingSetting.length > 0) {
+      // Update existing setting
+      await db
+        .update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(settings.key, key));
+    } else {
+      // Create new setting
+      await db
+        .insert(settings)
+        .values({ key, value });
+    }
   }
 }
 

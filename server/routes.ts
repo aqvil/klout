@@ -13,6 +13,12 @@ import {
   calculatePlayerScores,
   testApiConnection
 } from "./api/football";
+import {
+  getSetting,
+  updateSetting,
+  getAllSettings,
+  FOOTBALL_API_KEY
+} from "./api/settings";
 
 // Helper function to calculate influence scores
 const calculateScores = (stats: any) => {
@@ -451,6 +457,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update player scores" });
     }
   });
+  
+  // Settings API endpoints
+  app.get("/api/settings/:key", requireAdmin, getSetting);
+  app.put("/api/settings/:key", requireAdmin, updateSetting);
+  app.get("/api/settings", requireAdmin, getAllSettings);
 
   const httpServer = createServer(app);
   return httpServer;

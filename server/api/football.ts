@@ -2,18 +2,38 @@ import fetch from 'node-fetch';
 import { storage } from '../storage';
 import { InsertPlayer, InsertPlayerStats } from '@shared/schema';
 import type { Request, Response } from 'express';
+import { FOOTBALL_API_KEY } from './settings';
 
 // API Constants
 const API_BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3';
-const API_KEY = process.env.FOOTBALL_API_KEY;
 
-if (!API_KEY) {
-  console.error('FOOTBALL_API_KEY environment variable is not set');
-}
+// Get API Headers with the latest key from database or environment variable
+async function getApiHeaders() {
+  // First try to get the key from the database
+  let apiKey = await storage.getSetting(FOOTBALL_API_KEY);
+  
+  // If not found in database, fall back to environment variable
+  if (!apiKey) {
+    apiKey = process.env.FOOTBALL_API_KEY || '';
+    
+    // If we have an env var key but not in db, store it in db for future use
+    if (apiKey && apiKey.length > 0) {
+      await storage.setSetting(FOOTBALL_API_KEY, apiKey);
+      console.log('Initialized API key in database from environment variable');
+    }
+  }
 
-const API_HEADERS = {
-  'X-RapidAPI-Key': API_KEY || '',
-  'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+  if (!apiKey || apiKey.length === 0) {
+    console.error('FOOTBALL_API_KEY is not set in database or environment variables');
+  } else {
+    // Log the first few characters of the API key for debugging (don't log the full key for security)
+    console.log(`Football API Key status: Set (starts with: ${apiKey.substring(0, 4)}...)`);
+  }
+
+  return {
+    'X-RapidAPI-Key': apiKey || '',
+    'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+  };
 };
 
 // Test the API connection
@@ -21,10 +41,13 @@ export async function testApiConnection(req: Request, res: Response) {
   try {
     console.log('Testing Football API connection...');
     
+    // Get the latest API headers with current key
+    const headers = await getApiHeaders();
+    
     // Make a simple API call to test the connection
     const response = await fetch(`${API_BASE_URL}/leagues`, {
       method: 'GET',
-      headers: API_HEADERS
+      headers
     });
 
     // Log the response status for debugging
@@ -156,9 +179,11 @@ interface SocialMediaInfo {
 // Function to fetch all teams for a league
 export async function fetchTeamsInLeague(leagueId: number, season: number = 2023): Promise<number[]> {
   try {
+    const headers = await getApiHeaders();
+    
     const response = await fetch(`${API_BASE_URL}/teams?league=${leagueId}&season=${season}`, {
       method: 'GET',
-      headers: API_HEADERS
+      headers
     });
 
     if (!response.ok) {
@@ -177,9 +202,11 @@ export async function fetchTeamsInLeague(leagueId: number, season: number = 2023
 // Function to fetch players for a team
 export async function fetchPlayersInTeam(teamId: number, season: number = 2023): Promise<ApiPlayer[]> {
   try {
+    const headers = await getApiHeaders();
+    
     const response = await fetch(`${API_BASE_URL}/players?team=${teamId}&season=${season}`, {
       method: 'GET',
-      headers: API_HEADERS
+      headers
     });
 
     if (!response.ok) {
@@ -197,9 +224,11 @@ export async function fetchPlayersInTeam(teamId: number, season: number = 2023):
 // Function to fetch player statistics
 export async function fetchPlayerStatistics(playerId: number, season: number = 2023): Promise<ApiPlayer | null> {
   try {
+    const headers = await getApiHeaders();
+    
     const response = await fetch(`${API_BASE_URL}/players?id=${playerId}&season=${season}`, {
       method: 'GET', 
-      headers: API_HEADERS
+      headers
     });
 
     if (!response.ok) {

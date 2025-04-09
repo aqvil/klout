@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { insertPlayerSchema, insertPlayerStatsSchema, Player, PlayerStats, PlayerWithStats } from "@shared/schema";
-import { RefreshCcw, Save, Trash, UserPlus, Download, BarChart, Users, Zap } from "lucide-react";
+import { RefreshCcw, Save, Trash, UserPlus, Download, BarChart, Users, Zap, Key } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -126,17 +126,35 @@ function TestApiConnection() {
         });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setApiStatus({
-        success: false,
-        message: `API test failed: ${message}`,
-      });
+      let message = error instanceof Error ? error.message : "Unknown error";
       
-      toast({
-        title: "Connection Error",
-        description: message,
-        variant: "destructive",
-      });
+      // Special handling for the HTML parsing error
+      if (message.includes("Unexpected token '<'") || message.includes("<!DOCTYPE")) {
+        message = "API returned HTML instead of JSON. This usually indicates an authentication error with the API key.";
+        
+        setApiStatus({
+          success: false,
+          message: `API Authentication Error: The API key may be invalid or expired.`,
+          rateLimit: false
+        });
+        
+        toast({
+          title: "API Authentication Error",
+          description: "The Football API key appears to be invalid or expired. Please check your API key configuration.",
+          variant: "destructive",
+        });
+      } else {
+        setApiStatus({
+          success: false,
+          message: `API test failed: ${message}`,
+        });
+        
+        toast({
+          title: "Connection Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -351,6 +369,158 @@ function UpdateAllScoresMutation() {
           </AlertDescription>
         </Alert>
       )}
+    </div>
+  );
+}
+
+// API Key Management Component
+function ApiKeyManagement() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [isApiKeyHidden, setIsApiKeyHidden] = useState(true);
+  
+  // Fetch current API key
+  const { data, isLoading: isLoadingSettings, refetch } = useQuery<{ value: string | null }>({
+    queryKey: ["/api/settings/FOOTBALL_API_KEY"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/settings/FOOTBALL_API_KEY");
+      if (!response.ok) {
+        throw new Error("Failed to fetch API key setting");
+      }
+      return await response.json();
+    }
+  });
+  
+  // Update API key display when data changes
+  useEffect(() => {
+    if (data?.value) {
+      // Only show first few and last few characters
+      const value = data.value;
+      if (value.length > 8) {
+        const masked = `${value.substring(0, 4)}...${value.substring(value.length - 4)}`;
+        setApiKey(isApiKeyHidden ? masked : value);
+      } else {
+        setApiKey(isApiKeyHidden ? "****" : value);
+      }
+    } else {
+      setApiKey("");
+    }
+  }, [data, isApiKeyHidden]);
+  
+  // Update API key mutation
+  const updateApiKeyMutation = useMutation({
+    mutationFn: async (newKey: string) => {
+      const response = await apiRequest("PUT", "/api/settings/FOOTBALL_API_KEY", { value: newKey });
+      if (!response.ok) {
+        throw new Error("Failed to update API key");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "API Key Updated",
+        description: "The Football API key has been successfully updated.",
+      });
+      refetch(); // Refresh the API key data
+      setIsApiKeyHidden(true); // Re-hide the API key
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update API key",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleUpdateApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiKey.trim()) {
+      updateApiKeyMutation.mutate(apiKey);
+    } else {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a valid API key.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const toggleApiKeyVisibility = () => {
+    if (isApiKeyHidden && data?.value) {
+      // When revealing the API key, set the full value
+      setApiKey(data.value);
+    } else if (!isApiKeyHidden && data?.value) {
+      // When hiding the API key, mask it
+      const value = data.value;
+      const masked = value.length > 8 
+        ? `${value.substring(0, 4)}...${value.substring(value.length - 4)}`
+        : "****";
+      setApiKey(masked);
+    }
+    setIsApiKeyHidden(!isApiKeyHidden);
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="border rounded-lg p-4 bg-neutral-50">
+        <h3 className="text-lg font-medium mb-2">Football API Key</h3>
+        <p className="text-sm text-neutral-600 mb-4">
+          The application uses an API key to authenticate with the Football API service. This key is stored securely and used for all API requests.
+        </p>
+        <form onSubmit={handleUpdateApiKey} className="space-y-4">
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="apiKey">API Key</Label>
+            <div className="flex">
+              <Input
+                id="apiKey"
+                type={isApiKeyHidden ? "password" : "text"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="flex-1"
+                placeholder="Enter your Football API key"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={toggleApiKeyVisibility}
+                className="ml-2"
+              >
+                {isApiKeyHidden ? "Show" : "Hide"}
+              </Button>
+            </div>
+          </div>
+          <Button 
+            type="submit" 
+            disabled={updateApiKeyMutation.isPending || isLoadingSettings}
+            className="w-full"
+          >
+            {updateApiKeyMutation.isPending ? (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                Updating API Key...
+              </>
+            ) : (
+              <>
+                <Key className="mr-2 h-4 w-4" />
+                Update API Key
+              </>
+            )}
+          </Button>
+        </form>
+      </div>
+      <Alert className="bg-amber-50 border-amber-200">
+        <AlertTitle>Important Information About the API Key</AlertTitle>
+        <AlertDescription>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-amber-800">
+            <li>The API key is used to authenticate with the Football API service</li>
+            <li>The free tier of the API has a limit of 50 requests per day</li>
+            <li>The key is securely stored in the database</li>
+            <li>After updating the key, test the connection to verify it works</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }
@@ -1176,28 +1346,13 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>API Configuration</CardTitle>
                 <CardDescription>
-                  Test the Football API connection and verify your integration.
+                  Manage the Football API key and test your connection.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-                    <h3 className="text-lg font-medium text-amber-800 mb-2">API Rate Limit Reached</h3>
-                    <p className="text-sm text-amber-700 mb-4">
-                      The Football API's daily rate limit of 50 requests has been reached. The application can still function
-                      with existing player data. Some things to know:
-                    </p>
-                    <ul className="text-sm text-amber-700 space-y-1 list-disc pl-5 mb-4">
-                      <li>The rate limit will reset after 24 hours</li>
-                      <li>You can still use all other features of the application</li>
-                      <li>Manual player creation and score updating still work</li>
-                      <li>Existing data will continue to be displayed correctly</li>
-                    </ul>
-                    <p className="text-sm text-amber-700">
-                      In the future, please use the API sparingly by importing only a few players at a time.
-                    </p>
-                  </div>
-                
+                  <ApiKeyManagement />
+                  
                   <div className="border rounded-lg p-4 bg-neutral-50">
                     <h3 className="text-lg font-medium mb-2">About the Football API</h3>
                     <p className="text-sm text-neutral-600 mb-4">

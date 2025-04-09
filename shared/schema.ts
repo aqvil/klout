@@ -95,6 +95,19 @@ export interface PlayerWithStats {
   score: typeof scores.$inferSelect;
 }
 
+// Settings table for app configuration
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertSettingsSchema = createInsertSchema(settings).pick({
+  key: true,
+  value: true
+});
+
 // Types for our schemas
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -107,3 +120,6 @@ export type PlayerStats = typeof playerStats.$inferSelect;
 
 export type InsertScore = z.infer<typeof insertScoreSchema>;
 export type Score = typeof scores.$inferSelect;
+
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = typeof settings.$inferSelect;
