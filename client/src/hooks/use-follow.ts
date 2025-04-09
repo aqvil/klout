@@ -19,6 +19,16 @@ export function useFollow(playerId: number) {
     enabled: !!user && !!playerId,
   });
   
+  // Get follower count
+  const {
+    data: followersData,
+    isLoading: isLoadingFollowers
+  } = useQuery<any[]>({
+    queryKey: [`/api/follows/player/${playerId}`],
+    enabled: !!playerId,
+  });
+
+  const followerCount = followersData?.length || 0;
   const isFollowing = followCheckData?.isFollowing ?? false;
 
   // Follow a player
@@ -88,8 +98,11 @@ export function useFollow(playerId: number) {
 
   return {
     isFollowing,
-    isLoading: isCheckingFollow || followMutation.isPending || unfollowMutation.isPending,
+    followerCount,
+    isLoading: isCheckingFollow || isLoadingFollowers || followMutation.isPending || unfollowMutation.isPending,
     toggleFollow,
+    follow: () => followMutation.mutate(),
+    unfollow: () => unfollowMutation.mutate(),
     followMutation,
     unfollowMutation,
     refetchFollowStatus

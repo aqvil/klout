@@ -610,7 +610,7 @@ export default function PlayerPage() {
                         <div className="flex items-center mb-1">
                           <span className="text-sm font-medium text-neutral-700 w-32">Fan Engagement:</span>
                           <ProgressBar 
-                            value={playerDetails?.score.engagementScore || 0} 
+                            value={playerDetails?.score.engagementScore ? parseFloat((playerDetails.score.engagementScore).toFixed(2)) : 0} 
                             color="secondary" 
                             size="md"
                             className="flex-grow"
@@ -626,7 +626,7 @@ export default function PlayerPage() {
                               data={[
                                 { name: 'Social', value: playerDetails.score.socialScore },
                                 { name: 'Performance', value: playerDetails.score.performanceScore },
-                                { name: 'Engagement', value: playerDetails.score.engagementScore }
+                                { name: 'Engagement', value: parseFloat((playerDetails.score.engagementScore).toFixed(2)) }
                               ]}
                               cx="50%"
                               cy="50%"
