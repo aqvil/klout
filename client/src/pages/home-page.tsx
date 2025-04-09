@@ -121,8 +121,7 @@ export default function HomePage() {
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Rank</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Player</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Team</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Position</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Club</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
                     <div className="flex items-center cursor-pointer">
                       Influence Score
@@ -204,8 +203,7 @@ export default function HomePage() {
                           </div>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.team}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.position}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.club}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-lg font-bold text-primary">{Math.round(item.score.totalScore)}</div>
                       </td>
