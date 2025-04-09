@@ -32,6 +32,7 @@ export interface IStorage {
   // Player operations
   getAllPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
+  getPlayerBySlug(slug: string): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: number, player: Partial<InsertPlayer>): Promise<Player | undefined>;
   deletePlayer(id: number): Promise<boolean>;
@@ -181,8 +182,18 @@ export class MemStorage implements IStorage {
     return this.players.get(id);
   }
 
+  async getPlayerBySlug(slug: string): Promise<Player | undefined> {
+    return Array.from(this.players.values()).find(player => {
+      // Generate slug from player name if slug field is missing
+      const playerSlug = player.slug || player.name.toLowerCase().replace(/\s+/g, '-');
+      return playerSlug === slug;
+    });
+  }
+
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
+    // Generate slug from player name if not provided
+    const slug = player.slug || player.name.toLowerCase().replace(/\s+/g, '-');
     // Make sure bio is not undefined
     const bio = player.bio || "";
     // Make sure social URLs are not undefined
@@ -195,6 +206,7 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: new Date(),
       updatedAt: null,
+      slug,
       bio,
       instagramUrl,
       twitterUrl,
@@ -207,6 +219,11 @@ export class MemStorage implements IStorage {
   async updatePlayer(id: number, player: Partial<InsertPlayer>): Promise<Player | undefined> {
     const existingPlayer = this.players.get(id);
     if (!existingPlayer) return undefined;
+    
+    // If name is being updated but slug isn't provided, update the slug too
+    if (player.name && !player.slug) {
+      player.slug = player.name.toLowerCase().replace(/\s+/g, '-');
+    }
     
     const updatedPlayer = { ...existingPlayer, ...player };
     this.players.set(id, updatedPlayer);
@@ -607,11 +624,22 @@ export class DatabaseStorage implements IStorage {
     const [player] = await db.select().from(players).where(eq(players.id, id));
     return player;
   }
+  
+  async getPlayerBySlug(slug: string): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.slug, slug));
+    return player;
+  }
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
+    // Generate slug from player name if not provided
+    if (!player.slug) {
+      player.slug = player.name.toLowerCase().replace(/\s+/g, '-');
+    }
+    
     // Ensure required fields are properly set
     const processedPlayer = {
       ...player,
+      slug: player.slug,
       bio: player.bio || "",
       instagramUrl: player.instagramUrl === undefined ? null : player.instagramUrl,
       twitterUrl: player.twitterUrl === undefined ? null : player.twitterUrl,
@@ -623,6 +651,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePlayer(id: number, player: Partial<InsertPlayer>): Promise<Player | undefined> {
+    // If name is being updated but slug isn't provided, update the slug too
+    if (player.name && !player.slug) {
+      player.slug = player.name.toLowerCase().replace(/\s+/g, '-');
+    }
+    
     const [updatedPlayer] = await db
       .update(players)
       .set(player)

@@ -22,6 +22,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(), // Add slug field with unique constraint
   team: text("team").notNull(),
   country: text("country").notNull(),
   position: text("position").notNull(),
@@ -36,6 +37,7 @@ export const players = pgTable("players", {
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
+  slug: true,  // Include slug field in insert schema
   team: true,
   country: true,
   position: true,
