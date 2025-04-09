@@ -69,55 +69,64 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Settings className="h-6 w-6" />
-          <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="container max-w-6xl py-10">
+      <div className="space-y-8">
+        <div className="flex items-center gap-3 border-b pb-5">
+          <Settings className="h-7 w-7 text-primary" />
+          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left Column - Nav Links */}
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={profile?.avatarUrl || ""} alt={profile?.displayName || user?.username} />
-                    <AvatarFallback className="text-lg">
-                      {(profile?.displayName || user?.username || "?")[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-xl">{profile?.displayName || user?.username}</h3>
-                    <p className="text-muted-foreground text-sm">{user.username}</p>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          {/* Left Column - User Info & Nav Links */}
+          <div className="md:col-span-4 lg:col-span-3 space-y-6">
+            <Card className="shadow-md border-0 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary to-primary/80 h-20 relative">
+                <Avatar className="h-20 w-20 absolute bottom-0 left-6 transform translate-y-1/2 border-4 border-white shadow-lg">
+                  <AvatarImage src={profile?.avatarUrl || ""} alt={profile?.displayName || user?.username} />
+                  <AvatarFallback className="text-2xl bg-secondary text-white">
+                    {(profile?.displayName || user?.username || "?")[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <CardContent className="pt-12 pb-4 px-6">
+                <div>
+                  <h3 className="font-bold text-lg">{profile?.displayName || user?.username}</h3>
+                  <p className="text-muted-foreground text-sm">@{user.username}</p>
+                  {user.isAdmin && (
+                    <Badge variant="outline" className="mt-2 bg-primary/10 text-primary">
+                      Administrator
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
+              <div className="bg-muted/30 px-6 py-3">
+                <p className="text-xs text-muted-foreground">Member since {new Date().toLocaleDateString()}</p>
+              </div>
             </Card>
 
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" asChild>
+            <div className="grid gap-1.5">
+              <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link to="/profile">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
               </Button>
-              <Button variant="default" className="w-full justify-start">
+              <Button variant="secondary" className="w-full justify-start font-medium">
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </Button>
               {user.isAdmin && (
-                <Button variant="outline" className="w-full justify-start" asChild>
+                <Button variant="ghost" className="w-full justify-start" asChild>
                   <Link to="/admin">
                     <Shield className="mr-2 h-4 w-4" />
-                    Admin Panel
+                    Admin Dashboard
                   </Link>
                 </Button>
               )}
+              <Separator className="my-2" />
               <Button
-                variant="outline"
-                className="w-full justify-start text-destructive"
+                variant="ghost"
+                className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -127,38 +136,50 @@ export default function SettingsPage() {
           </div>
 
           {/* Right Column - Settings */}
-          <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>Manage your account settings and preferences</CardDescription>
+          <div className="md:col-span-8 lg:col-span-9 space-y-8">
+            <Card className="shadow-sm border-0">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold">Account Preferences</CardTitle>
+                <CardDescription>Manage your display and notification settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Theme Preferences</h3>
-                  <div className="flex items-center justify-between">
+                <div className="space-y-5">
+                  <h3 className="text-base font-medium flex items-center">
+                    <span className="bg-primary/10 text-primary p-1.5 rounded-md mr-2.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/><path d="M12 6a6 6 0 0 0-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 0 0-6-6Z"/>
+                      </svg>
+                    </span>
+                    Interface Preferences
+                  </h3>
+                  <div className="flex items-center justify-between px-4 py-3 rounded-lg border bg-card shadow-sm">
                     <div className="space-y-0.5">
-                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <Label htmlFor="dark-mode" className="text-base">Dark Mode</Label>
                       <p className="text-sm text-muted-foreground">
-                        Toggle between light and dark theme
+                        Switch between light and dark theme
                       </p>
                     </div>
                     <Switch
                       id="dark-mode"
                       checked={darkMode}
                       onCheckedChange={setDarkMode}
+                      className="scale-110"
                     />
                   </div>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Notification Preferences</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                <div className="space-y-5">
+                  <h3 className="text-base font-medium flex items-center">
+                    <span className="bg-primary/10 text-primary p-1.5 rounded-md mr-2.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </span>
+                    Notification Settings
+                  </h3>
+                  <div className="grid gap-4">
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg border bg-card shadow-sm">
                       <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
+                        <Label htmlFor="email-notifications" className="text-base">Email Notifications</Label>
                         <p className="text-sm text-muted-foreground">
                           Receive important updates via email
                         </p>
@@ -167,12 +188,13 @@ export default function SettingsPage() {
                         id="email-notifications"
                         checked={emailNotifications}
                         onCheckedChange={setEmailNotifications}
+                        className="scale-110"
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg border bg-card shadow-sm">
                       <div className="space-y-0.5">
-                        <Label htmlFor="push-notifications">Push Notifications</Label>
+                        <Label htmlFor="push-notifications" className="text-base">Push Notifications</Label>
                         <p className="text-sm text-muted-foreground">
                           Receive updates in real-time
                         </p>
@@ -181,6 +203,7 @@ export default function SettingsPage() {
                         id="push-notifications"
                         checked={pushNotifications}
                         onCheckedChange={setPushNotifications}
+                        className="scale-110"
                       />
                     </div>
                   </div>
@@ -188,14 +211,19 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your password</CardDescription>
+            <Card className="shadow-sm border-0">
+              <CardHeader className="pb-4">
+                <div className="flex items-center">
+                  <span className="bg-primary/10 text-primary p-1.5 rounded-md mr-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 16V8a2 2 0 0 1 2-2h8"/><path d="M6 16v-2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2"/><path d="M10 8V4a2 2 0 0 1 2-2h8"/><path d="M14 6v-2a2 2 0 0 1 2-2h6"/></svg>
+                  </span>
+                  <CardTitle className="text-xl font-bold ml-2">Change Password</CardTitle>
+                </div>
+                <CardDescription>Secure your account with a strong password</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
+                  <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-5">
                     <FormField
                       control={passwordForm.control}
                       name="currentPassword"
@@ -203,14 +231,14 @@ export default function SettingsPage() {
                         <FormItem>
                           <FormLabel>Current Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input type="password" placeholder="••••••••" {...field} className="bg-background" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={passwordForm.control}
                         name="newPassword"
@@ -218,7 +246,7 @@ export default function SettingsPage() {
                           <FormItem>
                             <FormLabel>New Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input type="password" placeholder="••••••••" {...field} className="bg-background" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -232,7 +260,7 @@ export default function SettingsPage() {
                           <FormItem>
                             <FormLabel>Confirm New Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input type="password" placeholder="••••••••" {...field} className="bg-background" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -251,17 +279,21 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Danger Zone</CardTitle>
-                <CardDescription>
-                  Irreversible actions for your account
+            <Card className="shadow-sm border-0 border-red-200 bg-red-50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center text-red-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                  <CardTitle className="text-xl font-bold text-red-600">Danger Zone</CardTitle>
+                </div>
+                <CardDescription className="text-red-500">
+                  Permanent and irreversible actions for your account
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive">
+                <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
                   Delete Account
                 </Button>
+                <p className="text-sm text-red-500 mt-2">This action cannot be undone. All your data will be permanently deleted.</p>
               </CardContent>
             </Card>
           </div>

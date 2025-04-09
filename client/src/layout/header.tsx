@@ -1,10 +1,20 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Search, X, User, Settings, Shield, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { KloutLogo } from "@/components/ui/logo";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Header() {
   const [location] = useLocation();
@@ -60,12 +70,53 @@ export default function Header() {
               </div>
             </div>
             {user ? (
-              <Button 
-                onClick={handleLogout} 
-                className="ml-4 bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-2 bg-white/10 hover:bg-white/20">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-secondary text-white text-sm">
+                        {user.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.username}</p>
+                      {user.isAdmin && <p className="text-xs leading-none text-muted-foreground">Administrator</p>}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile" className="cursor-pointer w-full">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings" className="cursor-pointer w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {user.isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="cursor-pointer w-full">
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Link href="/auth">
                 <Button className="ml-4 bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium">
@@ -121,12 +172,50 @@ export default function Header() {
                   </div>
                 </div>
                 {user ? (
-                  <Button 
-                    onClick={handleLogout} 
-                    className="w-full bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium"
-                  >
-                    Sign Out
-                  </Button>
+                  <div className="space-y-2">
+                    <div className="flex items-center p-2 mb-2">
+                      <Avatar className="h-8 w-8 mr-3">
+                        <AvatarFallback className="bg-secondary text-white text-sm">
+                          {user.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium text-white">{user.username}</p>
+                        {user.isAdmin && <p className="text-xs text-neutral-300">Administrator</p>}
+                      </div>
+                    </div>
+                    
+                    <Link href="/profile">
+                      <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Button>
+                    </Link>
+                    
+                    <Link href="/settings">
+                      <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </Button>
+                    </Link>
+                    
+                    {user.isAdmin && (
+                      <Link href="/admin">
+                        <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Admin
+                        </Button>
+                      </Link>
+                    )}
+                    
+                    <Button 
+                      onClick={handleLogout} 
+                      className="w-full bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium mt-2"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log Out
+                    </Button>
+                  </div>
                 ) : (
                   <Link href="/auth">
                     <Button className="w-full bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium">
