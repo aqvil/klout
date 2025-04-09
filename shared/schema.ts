@@ -7,7 +7,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  isAdmin: boolean("is_admin").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false), // using snake_case in column definition
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -46,16 +48,17 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
 // Player stats schema
 export const playerStats = pgTable("player_stats", {
   id: serial("id").primaryKey(),
-  playerId: integer("player_id").notNull(),
+  playerId: integer("playerId").notNull(), // this needs to be camelCase to match DB
   goals: integer("goals").notNull().default(0),
   assists: integer("assists").notNull().default(0),
-  yellowCards: integer("yellow_cards").notNull().default(0),
-  redCards: integer("red_cards").notNull().default(0),
-  instagramFollowers: integer("instagram_followers").notNull().default(0),
-  facebookFollowers: integer("facebook_followers").notNull().default(0),
-  twitterFollowers: integer("twitter_followers").notNull().default(0),
-  fanEngagement: real("fan_engagement").notNull().default(0),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  yellowCards: integer("yellowCards").notNull().default(0), // this needs to be camelCase to match DB
+  redCards: integer("redCards").notNull().default(0), // this needs to be camelCase to match DB
+  instagramFollowers: integer("instagramFollowers").notNull().default(0), // this needs to be camelCase to match DB
+  facebookFollowers: integer("facebookFollowers").notNull().default(0), // this needs to be camelCase to match DB
+  twitterFollowers: integer("twitterFollowers").notNull().default(0), // this needs to be camelCase to match DB
+  fanEngagement: integer("fanEngagement").notNull().default(0), // this needs to be camelCase to match DB
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt"),
 });
 
 export const insertPlayerStatsSchema = createInsertSchema(playerStats).pick({
@@ -73,11 +76,11 @@ export const insertPlayerStatsSchema = createInsertSchema(playerStats).pick({
 // Influence scores schema
 export const scores = pgTable("scores", {
   id: serial("id").primaryKey(),
-  playerId: integer("player_id").notNull(),
-  totalScore: real("total_score").notNull(),
-  socialScore: real("social_score").notNull(),
-  performanceScore: real("performance_score").notNull(),
-  engagementScore: real("engagement_score").notNull(),
+  playerId: integer("playerId").notNull(), // this needs to be camelCase to match DB
+  totalScore: integer("totalScore").notNull(), // this needs to be camelCase to match DB
+  socialScore: integer("socialScore").notNull(), // this needs to be camelCase to match DB
+  performanceScore: integer("performanceScore").notNull(), // this needs to be camelCase to match DB
+  engagementScore: integer("engagementScore").notNull(), // this needs to be camelCase to match DB
   date: timestamp("date").notNull().defaultNow(),
 });
 
@@ -100,8 +103,9 @@ export interface PlayerWithStats {
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
-  value: text("value"),
-  updatedAt: timestamp("updated_at").defaultNow()
+  value: text("value").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt"),
 });
 
 export const insertSettingsSchema = createInsertSchema(settings).pick({

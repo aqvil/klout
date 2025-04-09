@@ -98,7 +98,13 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, isAdmin: false };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      isAdmin: false,
+      createdAt: new Date(),
+      updatedAt: null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -125,6 +131,7 @@ export class MemStorage implements IStorage {
       ...player, 
       id, 
       createdAt: new Date(),
+      updatedAt: null,
       bio,
       instagramUrl,
       twitterUrl,
@@ -159,7 +166,8 @@ export class MemStorage implements IStorage {
     const newStats: PlayerStats = { 
       ...stats, 
       id, 
-      updatedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: null,
       // Ensure all required fields have default values
       goals: stats.goals ?? 0,
       assists: stats.assists ?? 0,
@@ -531,5 +539,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use database storage for production
-export const storage = new DatabaseStorage();
+// Temporarily use memory storage due to database schema issues
+export const storage = new MemStorage();
