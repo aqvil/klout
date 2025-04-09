@@ -313,11 +313,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Scores endpoints
-  app.get("/api/players/:id/scores", async (req, res) => {
+  app.get("/api/players/:idOrSlug/scores", async (req, res) => {
     try {
-      const playerId = parseInt(req.params.id);
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      const idOrSlug = req.params.idOrSlug;
+      let playerId: number | null = null;
+      
+      // Check if the parameter is a numeric ID
+      const numericId = parseInt(idOrSlug);
+      if (!isNaN(numericId)) {
+        // If it's a numeric ID, use it directly
+        playerId = numericId;
+      } else {
+        // If it's a slug, try to find the player with this slug
+        const allPlayers = await storage.getAllPlayers();
+        const matchedPlayer = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (matchedPlayer) {
+          playerId = matchedPlayer.id;
+        }
+      }
+      
+      if (playerId === null) {
+        return res.status(404).json({ message: "Player not found" });
       }
       
       const scores = await storage.getScores(playerId);
@@ -327,11 +346,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/players/:id/scores/latest", async (req, res) => {
+  app.get("/api/players/:idOrSlug/scores/latest", async (req, res) => {
     try {
-      const playerId = parseInt(req.params.id);
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      const idOrSlug = req.params.idOrSlug;
+      let playerId: number | null = null;
+      
+      // Check if the parameter is a numeric ID
+      const numericId = parseInt(idOrSlug);
+      if (!isNaN(numericId)) {
+        // If it's a numeric ID, use it directly
+        playerId = numericId;
+      } else {
+        // If it's a slug, try to find the player with this slug
+        const allPlayers = await storage.getAllPlayers();
+        const matchedPlayer = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (matchedPlayer) {
+          playerId = matchedPlayer.id;
+        }
+      }
+      
+      if (playerId === null) {
+        return res.status(404).json({ message: "Player not found" });
       }
       
       const score = await storage.getLatestScore(playerId);

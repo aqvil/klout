@@ -49,13 +49,29 @@ export default function PlayerPage() {
   const { data: scoreHistory, isLoading: isLoadingScores } = useQuery<Score[]>({
     queryKey: [`/api/players/${playerId}/scores`],
     enabled: !!playerId,
+    // Don't retry if we have a valid player but no scores
+    retry: (failureCount, error: any) => {
+      return failureCount < 2 && error?.response?.status !== 404;
+    },
   });
   
   const isLoading = isLoadingPlayer || isLoadingScores;
 
   // Prepare chart data for recharts
   const chartData = useMemo(() => {
-    if (!scoreHistory || scoreHistory.length === 0) return [];
+    if (!scoreHistory || scoreHistory.length === 0) {
+      // If no score history, create a single data point with current score if available
+      if (playerDetails?.score) {
+        return [{
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          totalScore: playerDetails.score.totalScore,
+          socialScore: playerDetails.score.socialScore,
+          performanceScore: playerDetails.score.performanceScore,
+          engagementScore: playerDetails.score.engagementScore
+        }];
+      }
+      return [];
+    }
     
     return scoreHistory.map(score => ({
       date: score.date ? new Date(score.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '',
@@ -64,7 +80,7 @@ export default function PlayerPage() {
       performanceScore: score.performanceScore,
       engagementScore: score.engagementScore
     }));
-  }, [scoreHistory]);
+  }, [scoreHistory, playerDetails?.score]);
   
   // Format follower count
   const formatFollowers = (count: number): string => {
