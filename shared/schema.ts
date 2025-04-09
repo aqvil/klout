@@ -258,7 +258,7 @@ export type InsertFanProfile = z.infer<typeof insertFanProfileSchema>;
 export type FanProfile = typeof fanProfiles.$inferSelect;
 
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
-export type Follow = typeof follows.$inferSelect & { playerName?: string | null };
+export type Follow = typeof follows.$inferSelect & { playerName?: string | null, playerSlug?: string | null, player?: Player };
 
 export type InsertEngagementType = z.infer<typeof insertEngagementTypeSchema>;
 export type EngagementType = typeof engagementTypes.$inferSelect;
