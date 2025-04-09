@@ -187,7 +187,7 @@ export default function HomePage() {
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 
                                 className="h-10 w-10 rounded-full object-cover" 
-                                src={item.player.profileImg} 
+                                src={item.player.profileImg || ""} 
                                 alt={item.player.name}
                                 onError={(e) => {
                                   // Fallback to a placeholder if the image fails to load
@@ -295,11 +295,20 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full" 
+                              src={item.player.profileImg || ""} 
+                              alt={item.player.name} 
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>
@@ -340,11 +349,20 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full" 
+                              src={item.player.profileImg || ""} 
+                              alt={item.player.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>
@@ -385,11 +403,20 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full" 
+                              src={item.player.profileImg || ""} 
+                              alt={item.player.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>
