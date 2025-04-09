@@ -473,6 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/player-details/:idOrSlug", async (req, res) => {
     try {
       const idOrSlug = req.params.idOrSlug;
+      console.log(`[DEBUG] Getting player details for: ${idOrSlug}`);
       let playerWithDetails = null;
       
       // Check if the parameter is a numeric ID
@@ -480,30 +481,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!isNaN(playerId)) {
         // If it's a numeric ID, fetch by ID
+        console.log(`[DEBUG] Using numeric ID: ${playerId}`);
         playerWithDetails = await storage.getPlayerWithStatsAndScores(playerId);
       } else {
-        // If it's a slug, convert back to a name and search
-        const nameFromSlug = idOrSlug.split('-').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
+        // If it's a slug, try to find the player with this slug
+        console.log(`[DEBUG] Using slug: ${idOrSlug}`);
         
-        // Get all players and find the one matching the name
+        // Get all players and find the one matching the slug
         const allPlayers = await storage.getAllPlayers();
-        const matchedPlayer = allPlayers.find(p => 
-          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
-        );
+        console.log(`[DEBUG] Found ${allPlayers.length} players, searching for match with slug: ${idOrSlug}`);
+        
+        // Debug: Print out a few player names and their slugs
+        allPlayers.slice(0, 5).forEach(p => {
+          const playerSlug = p.name.toLowerCase().replace(/\s+/g, '-');
+          console.log(`[DEBUG] Player: ${p.name}, Slug: ${playerSlug}`);
+        });
+        
+        const matchedPlayer = allPlayers.find(p => {
+          const playerSlug = p.name.toLowerCase().replace(/\s+/g, '-');
+          return playerSlug === idOrSlug.toLowerCase();
+        });
         
         if (matchedPlayer) {
+          console.log(`[DEBUG] Found matching player: ${matchedPlayer.name} (ID: ${matchedPlayer.id})`);
           playerWithDetails = await storage.getPlayerWithStatsAndScores(matchedPlayer.id);
+        } else {
+          console.log(`[DEBUG] No player found matching slug: ${idOrSlug}`);
         }
       }
       
       if (!playerWithDetails) {
+        console.log(`[DEBUG] No player details found for: ${idOrSlug}`);
         return res.status(404).json({ message: "Player not found or missing details" });
       }
       
+      console.log(`[DEBUG] Returning player details for: ${playerWithDetails.player.name}`);
       res.json(playerWithDetails);
     } catch (error) {
+      console.error(`[ERROR] Failed to get player details for ${req.params.idOrSlug}:`, error);
       res.status(500).json({ message: "Failed to get player details" });
     }
   });

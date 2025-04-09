@@ -41,6 +41,14 @@ export default function PlayerPage() {
     isError: isPlayerError 
   } = useQuery<PlayerWithStats>({
     queryKey: [`/api/player-details/${slug}`],
+    onError: (error: any) => {
+      console.error("Error fetching player details:", error);
+      console.log("Slug used:", slug);
+      if (error.response) {
+        console.log("Response status:", error.response.status);
+        console.log("Response data:", error.response.data);
+      }
+    }
   });
   
   // Once we have player details, use the actual ID for getting scores
