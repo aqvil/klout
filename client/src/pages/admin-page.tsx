@@ -46,14 +46,115 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// Test API Connection Component
+function TestApiConnection() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState<{
+    success: boolean;
+    message: string;
+    leagues?: any[];
+  } | null>(null);
+  
+  const testApiConnection = async () => {
+    setIsLoading(true);
+    setApiStatus(null);
+    
+    try {
+      const response = await apiRequest("GET", "/api/test-football-api");
+      const data = await response.json();
+      setApiStatus(data);
+      
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Football API connection is working properly",
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setApiStatus({
+        success: false,
+        message: `API test failed: ${message}`,
+      });
+      
+      toast({
+        title: "Connection Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <Button 
+        onClick={testApiConnection}
+        disabled={isLoading}
+        variant="outline"
+        className="w-full"
+      >
+        {isLoading ? (
+          <>
+            <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            Testing API Connection...
+          </>
+        ) : (
+          <>Test Football API Connection</>
+        )}
+      </Button>
+      
+      {apiStatus && (
+        <div className={`p-4 border rounded-md ${apiStatus.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="font-medium mb-2">
+            {apiStatus.success ? 'API Connection Successful' : 'API Connection Failed'}
+          </div>
+          <div className="text-sm">
+            {apiStatus.message}
+          </div>
+          {apiStatus.success && apiStatus.leagues && (
+            <div className="mt-4">
+              <div className="font-medium mb-2">Sample Leagues from API:</div>
+              <ul className="text-sm space-y-1">
+                {apiStatus.leagues.slice(0, 3).map((league: any, index: number) => (
+                  <li key={index}>
+                    {league.league.name} ({league.country.name})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Import Player Mutation Component
 function ImportPlayersMutation() {
   const { toast } = useToast();
   const [limit, setLimit] = useState(10);
+  const [inputEl, setInputEl] = useState<HTMLInputElement | null>(null);
   
   const importPlayersMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/import-players", { limit });
+      // Get the limit value from the input field
+      const limitValue = inputEl ? parseInt(inputEl.value) || 10 : limit;
+      
+      // Validate the limit
+      if (limitValue < 1 || limitValue > 50) {
+        throw new Error("Please enter a number between 1 and 50");
+      }
+      
+      const response = await apiRequest("POST", "/api/import-players", { limit: limitValue });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -81,11 +182,12 @@ function ImportPlayersMutation() {
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Input
+          id="playerLimitInput"
           type="number"
           min="1"
           max="50"
-          value={limit}
-          onChange={(e) => setLimit(parseInt(e.target.value) || 10)}
+          defaultValue={limit.toString()}
+          ref={setInputEl}
           className="w-24"
         />
         <Button
@@ -101,7 +203,7 @@ function ImportPlayersMutation() {
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              Import Players
+              Import Real Players
             </>
           )}
         </Button>
@@ -998,6 +1100,32 @@ export default function AdminPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <Card>
               <CardHeader>
+                <CardTitle>API Configuration</CardTitle>
+                <CardDescription>
+                  Test the Football API connection and verify your integration.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="border rounded-lg p-4 bg-neutral-50">
+                    <h3 className="text-lg font-medium mb-2">About the Football API</h3>
+                    <p className="text-sm text-neutral-600 mb-4">
+                      This application uses the real Football API to fetch authentic player data and statistics.
+                      Before importing players, you should test the API connection to ensure it's working properly.
+                    </p>
+                    <p className="text-sm text-neutral-600">
+                      The API provides data for over 800 football leagues globally, including player profiles, 
+                      match statistics, live scores, and historical data.
+                    </p>
+                  </div>
+                  
+                  <TestApiConnection />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
                 <CardTitle>Import Players</CardTitle>
                 <CardDescription>
                   Import real players from major football leagues using the Football API.
@@ -1022,18 +1150,6 @@ export default function AdminPage() {
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Label htmlFor="playerLimit">Number of Players to Import:</Label>
-                      <Input 
-                        id="playerLimit" 
-                        type="number" 
-                        className="w-24" 
-                        min="1" 
-                        max="50"
-                        defaultValue="10"
-                      />
-                    </div>
-                    
                     <ImportPlayersMutation />
                   </div>
                 </div>

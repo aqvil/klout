@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { storage } from '../storage';
 import { InsertPlayer, InsertPlayerStats } from '@shared/schema';
+import type { Request, Response } from 'express';
 
 // API Constants
 const API_BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3';
@@ -14,6 +15,43 @@ const API_HEADERS = {
   'X-RapidAPI-Key': API_KEY || '',
   'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
 };
+
+// Test the API connection
+export async function testApiConnection(req: Request, res: Response) {
+  try {
+    console.log('Testing Football API connection...');
+    
+    // Make a simple API call to test the connection
+    const response = await fetch(`${API_BASE_URL}/leagues`, {
+      method: 'GET',
+      headers: API_HEADERS
+    });
+
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    
+    // Check if we got a valid response
+    if (data && data.response && Array.isArray(data.response) && data.response.length > 0) {
+      console.log('Football API connection successful');
+      res.json({ 
+        success: true, 
+        message: 'API connection successful',
+        leagues: data.response.slice(0, 5) // Return just a few leagues as proof
+      });
+    } else {
+      throw new Error('Invalid response format from API');
+    }
+  } catch (error) {
+    console.error('Error testing Football API connection:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `API connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    });
+  }
+}
 
 // League IDs for major leagues
 const MAJOR_LEAGUES = [

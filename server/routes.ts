@@ -10,7 +10,8 @@ import { updatePlayerStatsFromSocialMedia } from "./scraper";
 import { 
   fetchPlayersFromMajorLeagues, 
   updatePlayerInfluenceScores,
-  calculatePlayerScores
+  calculatePlayerScores,
+  testApiConnection
 } from "./api/football";
 
 // Helper function to calculate influence scores
@@ -366,6 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/players/:id/scrape-social-media", requireAdmin, updatePlayerStatsFromSocialMedia);
   
   // Football API integration endpoints
+  
+  // Test Football API connection
+  app.get("/api/test-football-api", requireAdmin, testApiConnection);
   
   // Import players from major leagues
   app.post("/api/import-players", requireAdmin, async (req, res) => {
