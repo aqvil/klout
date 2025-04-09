@@ -34,21 +34,22 @@ export default function PlayerPage() {
   const numberId = Number(slug);
   const isIdFormat = !isNaN(numberId);
 
+  // Use the appropriate API endpoint based on whether slug is a numeric ID or name-based slug
+  const apiEndpoint = isIdFormat 
+    ? `/api/player-details/${slug}`  // Use original endpoint for numeric IDs
+    : `/api/player-by-slug/${slug}`; // Use our new endpoint for name-based slugs
+    
+  console.log(`Using API endpoint: ${apiEndpoint} for slug: ${slug}`);
+  
   const { 
     data: playerDetails, 
     isLoading: isLoadingPlayer,
     error: playerError,
     isError: isPlayerError 
-  } = useQuery<PlayerWithStats>({
-    queryKey: [`/api/player-details/${slug}`],
-    onError: (error: any) => {
-      console.error("Error fetching player details:", error);
-      console.log("Slug used:", slug);
-      if (error.response) {
-        console.log("Response status:", error.response.status);
-        console.log("Response data:", error.response.data);
-      }
-    }
+  } = useQuery<PlayerWithStats, Error, PlayerWithStats>({
+    queryKey: [apiEndpoint],
+    retry: 1, // Only retry once to avoid excessive requests
+    enabled: !!slug,
   });
   
   // Once we have player details, use the actual ID for getting scores

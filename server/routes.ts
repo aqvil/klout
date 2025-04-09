@@ -514,6 +514,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Test failed" });
     }
   });
+  
+  // New dedicated endpoint for player details by slug (NOT id)
+  app.get("/api/player-by-slug/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      console.log(`[SLUG] Getting player details for slug: ${slug}`);
+      
+      // Get all players and find the one matching the slug
+      const allPlayers = await storage.getAllPlayers();
+      
+      const matchedPlayer = allPlayers.find(p => {
+        const playerSlug = p.name.toLowerCase().replace(/\s+/g, '-');
+        return playerSlug === slug.toLowerCase();
+      });
+      
+      if (!matchedPlayer) {
+        console.log(`[SLUG] No player found matching slug: ${slug}`);
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      console.log(`[SLUG] Found matching player: ${matchedPlayer.name} (ID: ${matchedPlayer.id})`);
+      const playerWithDetails = await storage.getPlayerWithStatsAndScores(matchedPlayer.id);
+      
+      if (!playerWithDetails) {
+        console.log(`[SLUG] No player details found for: ${matchedPlayer.name}`);
+        return res.status(404).json({ message: "Player details not found" });
+      }
+      
+      console.log(`[SLUG] Returning player details for: ${playerWithDetails.player.name}`);
+      res.json(playerWithDetails);
+    } catch (error) {
+      console.error(`[SLUG ERROR] Failed to get player details for slug ${req.params.slug}:`, error);
+      res.status(500).json({ message: "Failed to get player details" });
+    }
+  });
 
   // Get a single player with stats and scores - supports both ID and slug
   app.get("/api/player-details/:idOrSlug", async (req, res) => {
