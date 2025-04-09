@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Menu, Search, X, User, Settings, Shield, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { KloutLogo } from "@/components/ui/logo";
 import { 
   DropdownMenu,
@@ -16,12 +16,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { FanProfile } from "@shared/schema";
+import { FanProfile, Player } from "@shared/schema";
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Player[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch user profile if logged in
   const { data: profile } = useQuery<FanProfile>({
@@ -31,6 +36,65 @@ export default function Header() {
         .then(res => res.ok ? res.json() : null),
     enabled: !!user,
   });
+  
+  // Fetch players for search
+  const { data: allPlayers } = useQuery<Player[]>({
+    queryKey: ['/api/players'],
+    queryFn: ({ signal }) => 
+      fetch('/api/players', { signal })
+        .then(res => res.ok ? res.json() : []),
+  });
+  
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim().length > 1 && allPlayers) {
+      // Filter players based on search query
+      const filtered = allPlayers.filter(player => 
+        player.name.toLowerCase().includes(query.toLowerCase()) ||
+        player.team.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 6); // Limit to 6 results
+      
+      setSearchResults(filtered);
+      setShowSearchResults(filtered.length > 0);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+  
+  // Handle clicking outside search results to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchResultsRef.current && 
+        !searchResultsRef.current.contains(event.target as Node) &&
+        searchInputRef.current && 
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Helper function to create proper player slugs
+  const createProperSlug = (name: string, existingSlug?: string | null): string => {
+    if (existingSlug) return existingSlug;
+    
+    return name.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/^-+|-+$/g, ''); // Trim leading/trailing hyphens
+  };
   
   const isActiveLink = (path: string) => {
     return location === path;
@@ -71,13 +135,55 @@ export default function Header() {
             <div className="hidden md:block">
               <div className="relative">
                 <Input 
+                  ref={searchInputRef}
                   type="text" 
+                  value={searchQuery}
+                  onChange={handleSearchChange}
                   placeholder="Search players..." 
                   className="bg-white/10 text-white placeholder-neutral-300 border border-transparent focus:border-secondary focus:ring-0 rounded-lg px-4 py-2 text-sm" 
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-neutral-300" />
                 </div>
+                
+                {showSearchResults && (
+                  <div 
+                    ref={searchResultsRef}
+                    className="absolute z-50 mt-2 w-full bg-white rounded-md shadow-lg overflow-hidden"
+                  >
+                    <div className="max-h-60 overflow-y-auto">
+                      {searchResults.map((player) => (
+                        <Link 
+                          key={player.id} 
+                          href={`/player/${createProperSlug(player.name, player.slug)}`}
+                          onClick={() => {
+                            setShowSearchResults(false);
+                            setSearchQuery("");
+                          }}
+                        >
+                          <div className="flex items-center px-4 py-3 hover:bg-neutral-100 cursor-pointer">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <img 
+                                className="h-10 w-10 rounded-full object-cover" 
+                                src={player.profileImg} 
+                                alt={player.name}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=100&background=random`;
+                                }}
+                              />
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium text-neutral-900">{player.name}</p>
+                              <p className="text-xs text-neutral-500">{player.team} • {player.position}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             {user ? (
@@ -179,12 +285,53 @@ export default function Header() {
                 <div className="relative mb-3">
                   <Input 
                     type="text" 
+                    value={searchQuery}
+                    onChange={handleSearchChange}
                     placeholder="Search players..." 
                     className="bg-white/10 text-white placeholder-neutral-300 border border-transparent focus:border-secondary focus:ring-0 rounded-lg px-4 py-2 text-sm w-full" 
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Search className="h-4 w-4 text-neutral-300" />
                   </div>
+                  
+                  {showSearchResults && (
+                    <div 
+                      className="absolute z-50 mt-2 w-full bg-white rounded-md shadow-lg overflow-hidden"
+                    >
+                      <div className="max-h-60 overflow-y-auto">
+                        {searchResults.map((player) => (
+                          <Link 
+                            key={player.id} 
+                            href={`/player/${createProperSlug(player.name, player.slug)}`}
+                            onClick={() => {
+                              setShowSearchResults(false);
+                              setSearchQuery("");
+                              setIsMobileMenuOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center px-4 py-3 hover:bg-neutral-100 cursor-pointer">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <img 
+                                  className="h-10 w-10 rounded-full object-cover" 
+                                  src={player.profileImg} 
+                                  alt={player.name}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=100&background=random`;
+                                  }}
+                                />
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm font-medium text-neutral-900">{player.name}</p>
+                                <p className="text-xs text-neutral-500">{player.team} • {player.position}</p>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {user ? (
                   <div className="space-y-2">
