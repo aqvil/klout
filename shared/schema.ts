@@ -24,6 +24,9 @@ export const players = pgTable("players", {
   position: text("position").notNull(),
   profileImg: text("profile_img").notNull(),
   bio: text("bio").notNull().default(""),
+  instagramUrl: text("instagram_url"),
+  twitterUrl: text("twitter_url"),
+  facebookUrl: text("facebook_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -34,6 +37,9 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   position: true,
   profileImg: true,
   bio: true,
+  instagramUrl: true,
+  twitterUrl: true,
+  facebookUrl: true,
 });
 
 // Player stats schema

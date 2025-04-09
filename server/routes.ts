@@ -6,6 +6,7 @@ import { insertPlayerSchema, insertPlayerStatsSchema, insertScoreSchema } from "
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
+import { updatePlayerStatsFromSocialMedia } from "./scraper";
 
 // Helper function to calculate influence scores
 const calculateScores = (stats: any) => {
@@ -355,6 +356,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get player details" });
     }
   });
+  
+  // Social media scraping endpoint
+  app.post("/api/players/:id/scrape-social-media", requireAdmin, updatePlayerStatsFromSocialMedia);
 
   const httpServer = createServer(app);
   return httpServer;
