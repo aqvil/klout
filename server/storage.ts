@@ -108,7 +108,22 @@ export class MemStorage implements IStorage {
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
-    const newPlayer: Player = { ...player, id, createdAt: new Date() };
+    // Make sure bio is not undefined
+    const bio = player.bio || "";
+    // Make sure social URLs are not undefined
+    const instagramUrl = player.instagramUrl === undefined ? null : player.instagramUrl;
+    const twitterUrl = player.twitterUrl === undefined ? null : player.twitterUrl;
+    const facebookUrl = player.facebookUrl === undefined ? null : player.facebookUrl;
+    
+    const newPlayer: Player = { 
+      ...player, 
+      id, 
+      createdAt: new Date(),
+      bio,
+      instagramUrl,
+      twitterUrl,
+      facebookUrl
+    };
     this.players.set(id, newPlayer);
     return newPlayer;
   }
@@ -138,7 +153,16 @@ export class MemStorage implements IStorage {
     const newStats: PlayerStats = { 
       ...stats, 
       id, 
-      updatedAt: new Date() 
+      updatedAt: new Date(),
+      // Ensure all required fields have default values
+      goals: stats.goals ?? 0,
+      assists: stats.assists ?? 0,
+      yellowCards: stats.yellowCards ?? 0,
+      redCards: stats.redCards ?? 0,
+      instagramFollowers: stats.instagramFollowers ?? 0,
+      facebookFollowers: stats.facebookFollowers ?? 0,
+      twitterFollowers: stats.twitterFollowers ?? 0,
+      fanEngagement: stats.fanEngagement ?? 0
     };
     this.playerStats.set(id, newStats);
     return newStats;
@@ -296,7 +320,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
-    const [newPlayer] = await db.insert(players).values(player).returning();
+    // Ensure required fields are properly set
+    const processedPlayer = {
+      ...player,
+      bio: player.bio || "",
+      instagramUrl: player.instagramUrl === undefined ? null : player.instagramUrl,
+      twitterUrl: player.twitterUrl === undefined ? null : player.twitterUrl,
+      facebookUrl: player.facebookUrl === undefined ? null : player.facebookUrl,
+    };
+    
+    const [newPlayer] = await db.insert(players).values(processedPlayer).returning();
     return newPlayer;
   }
 
@@ -329,9 +362,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats> {
+    // Ensure all required fields have default values
+    const processedStats = {
+      ...stats,
+      goals: stats.goals ?? 0,
+      assists: stats.assists ?? 0,
+      yellowCards: stats.yellowCards ?? 0,
+      redCards: stats.redCards ?? 0,
+      instagramFollowers: stats.instagramFollowers ?? 0,
+      facebookFollowers: stats.facebookFollowers ?? 0,
+      twitterFollowers: stats.twitterFollowers ?? 0,
+      fanEngagement: stats.fanEngagement ?? 0
+    };
+    
     const [newStats] = await db
       .insert(playerStats)
-      .values(stats)
+      .values(processedStats)
       .returning();
     return newStats;
   }

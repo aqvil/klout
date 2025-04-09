@@ -7,6 +7,11 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { updatePlayerStatsFromSocialMedia } from "./scraper";
+import { 
+  fetchPlayersFromMajorLeagues, 
+  updatePlayerInfluenceScores,
+  calculatePlayerScores
+} from "./api/football";
 
 // Helper function to calculate influence scores
 const calculateScores = (stats: any) => {
@@ -359,6 +364,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Social media scraping endpoint
   app.post("/api/players/:id/scrape-social-media", requireAdmin, updatePlayerStatsFromSocialMedia);
+  
+  // Football API integration endpoints
+  
+  // Import players from major leagues
+  app.post("/api/import-players", requireAdmin, async (req, res) => {
+    try {
+      const { limit = 10 } = req.body;
+      
+      // Validate limit
+      const limitNum = parseInt(limit as string);
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 50) {
+        return res.status(400).json({ 
+          message: "Invalid limit. Please provide a number between 1 and 50" 
+        });
+      }
+      
+      // Start the import process
+      console.log(`Starting import of ${limitNum} players from major leagues...`);
+      
+      // Run import in the background
+      fetchPlayersFromMajorLeagues(limitNum)
+        .then(() => console.log('Player import completed successfully'))
+        .catch(err => console.error('Player import failed:', err));
+      
+      res.status(202).json({ 
+        message: `Started importing up to ${limitNum} players from major leagues.` +
+                 ` This process runs in the background and may take several minutes.` 
+      });
+    } catch (error) {
+      console.error('Error in import-players endpoint:', error);
+      res.status(500).json({ message: "Failed to start player import process" });
+    }
+  });
+  
+  // Update scores for all players
+  app.post("/api/update-all-scores", requireAdmin, async (req, res) => {
+    try {
+      const players = await storage.getAllPlayers();
+      
+      // Start updating scores in the background
+      const updatePromise = Promise.all(
+        players.map(player => 
+          updatePlayerInfluenceScores(player.id)
+            .catch(err => console.error(`Failed to update scores for player ${player.id}:`, err))
+        )
+      );
+      
+      updatePromise
+        .then(() => console.log('All player scores updated successfully'))
+        .catch(err => console.error('Error updating player scores:', err));
+      
+      res.status(202).json({ 
+        message: `Started updating scores for ${players.length} players. This process runs in the background.` 
+      });
+    } catch (error) {
+      console.error('Error in update-all-scores endpoint:', error);
+      res.status(500).json({ message: "Failed to start score update process" });
+    }
+  });
+  
+  // Update scores for a specific player
+  app.post("/api/players/:id/update-scores", requireAdmin, async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      // Check if player exists
+      const player = await storage.getPlayer(playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      // Update the player's scores
+      await updatePlayerInfluenceScores(playerId);
+      
+      res.json({ message: `Scores updated for player ${player.name}` });
+    } catch (error) {
+      console.error(`Error updating scores for player ${req.params.id}:`, error);
+      res.status(500).json({ message: "Failed to update player scores" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

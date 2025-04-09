@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { insertPlayerSchema, insertPlayerStatsSchema, Player, PlayerStats, PlayerWithStats } from "@shared/schema";
-import { RefreshCcw, Save, Trash, UserPlus } from "lucide-react";
+import { RefreshCcw, Save, Trash, UserPlus, Download, BarChart, Users, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,192 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+// Import Player Mutation Component
+function ImportPlayersMutation() {
+  const { toast } = useToast();
+  const [limit, setLimit] = useState(10);
+  
+  const importPlayersMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/import-players", { limit });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Import started",
+        description: data.message,
+      });
+      
+      // After a short delay, invalidate the players query to refresh the data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+      }, 5000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          min="1"
+          max="50"
+          value={limit}
+          onChange={(e) => setLimit(parseInt(e.target.value) || 10)}
+          className="w-24"
+        />
+        <Button
+          onClick={() => importPlayersMutation.mutate()}
+          disabled={importPlayersMutation.isPending}
+          className="flex-1"
+        >
+          {importPlayersMutation.isPending ? (
+            <>
+              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+              Importing...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Import Players
+            </>
+          )}
+        </Button>
+      </div>
+      {importPlayersMutation.isSuccess && (
+        <Alert className="bg-green-50">
+          <AlertTitle>Import started successfully</AlertTitle>
+          <AlertDescription>
+            The import process is running in the background. Data will be available soon.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+// Update All Scores Mutation Component
+function UpdateAllScoresMutation() {
+  const { toast } = useToast();
+  
+  const updateAllScoresMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/update-all-scores", {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Score update started",
+        description: data.message,
+      });
+      
+      // After a short delay, invalidate the rankings to refresh the data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+      }, 5000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  return (
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium mb-2">Update All Players</h3>
+      <Button
+        onClick={() => updateAllScoresMutation.mutate()}
+        disabled={updateAllScoresMutation.isPending}
+        className="w-full"
+      >
+        {updateAllScoresMutation.isPending ? (
+          <>
+            <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            Updating All Scores...
+          </>
+        ) : (
+          <>
+            <BarChart className="mr-2 h-4 w-4" />
+            Update All Player Scores
+          </>
+        )}
+      </Button>
+      {updateAllScoresMutation.isSuccess && (
+        <Alert className="bg-green-50">
+          <AlertTitle>Update started successfully</AlertTitle>
+          <AlertDescription>
+            The scores are being updated in the background. Refresh the rankings to see the latest data.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+// Update Single Player Score Mutation Component
+function UpdateSinglePlayerScoreMutation({ player }: { player: Player }) {
+  const { toast } = useToast();
+  
+  const updatePlayerScoreMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/players/${player.id}/update-scores`, {});
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Player score updated",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  return (
+    <div className="flex items-center justify-between border rounded-md p-2">
+      <div className="flex items-center">
+        <img 
+          src={player.profileImg} 
+          alt={player.name}
+          className="h-8 w-8 rounded-full mr-2 object-cover"
+        />
+        <div>
+          <div className="font-medium">{player.name}</div>
+          <div className="text-xs text-neutral-500">{player.club}</div>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        onClick={() => updatePlayerScoreMutation.mutate()}
+        disabled={updatePlayerScoreMutation.isPending}
+      >
+        {updatePlayerScoreMutation.isPending ? (
+          <RefreshCcw className="h-4 w-4 animate-spin" />
+        ) : (
+          <Zap className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  );
+}
 
 // Extended schema with validations for the player form
 const playerFormSchema = insertPlayerSchema.extend({
@@ -220,7 +406,7 @@ export default function AdminPage() {
   };
 
   // Update stats form when selected player stats are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPlayerStats) {
       statsForm.setValue("goals", selectedPlayerStats.goals);
       statsForm.setValue("assists", selectedPlayerStats.assists);
@@ -260,6 +446,7 @@ export default function AdminPage() {
           <TabsTrigger value="players">Manage Players</TabsTrigger>
           <TabsTrigger value="stats">Update Stats</TabsTrigger>
           <TabsTrigger value="rankings">View Rankings</TabsTrigger>
+          <TabsTrigger value="api">Football API</TabsTrigger>
         </TabsList>
 
         {/* Manage Players Tab */}
@@ -804,6 +991,106 @@ export default function AdminPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Football API Integration Tab */}
+        <TabsContent value="api">
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Import Players</CardTitle>
+                <CardDescription>
+                  Import real players from major football leagues using the Football API.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="border rounded-lg p-4 bg-neutral-50">
+                    <h3 className="text-lg font-medium mb-2">What This Does</h3>
+                    <p className="text-sm text-neutral-600 mb-4">
+                      This feature fetches real player data from major football leagues worldwide using
+                      the Football API. It will import:
+                    </p>
+                    <ul className="text-sm text-neutral-600 space-y-1 list-disc pl-5 mb-4">
+                      <li>Player profiles (name, club, nationality, position, photo)</li>
+                      <li>Performance statistics (goals, assists, cards)</li>
+                      <li>Estimated social media metrics</li>
+                    </ul>
+                    <p className="text-sm text-neutral-600">
+                      The import process happens in the background and may take several minutes.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor="playerLimit">Number of Players to Import:</Label>
+                      <Input 
+                        id="playerLimit" 
+                        type="number" 
+                        className="w-24" 
+                        min="1" 
+                        max="50"
+                        defaultValue="10"
+                      />
+                    </div>
+                    
+                    <ImportPlayersMutation />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Player Scores</CardTitle>
+                <CardDescription>
+                  Recalculate influence scores for all players or update a specific player.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="border rounded-lg p-4 bg-neutral-50">
+                    <h3 className="text-lg font-medium mb-2">About Score Updates</h3>
+                    <p className="text-sm text-neutral-600 mb-2">
+                      Player influence scores are calculated using a weighted formula that combines:
+                    </p>
+                    <ul className="text-sm text-neutral-600 space-y-1 list-disc pl-5">
+                      <li><strong>Social Score (40%):</strong> Based on social media followers</li>
+                      <li><strong>Performance Score (40%):</strong> Based on goals, assists, and disciplinary record</li>
+                      <li><strong>Engagement Score (20%):</strong> Based on fan interaction metrics</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <UpdateAllScoresMutation />
+                    
+                    <Separator className="my-4" />
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Update Individual Player</h3>
+                      <div className="space-y-4">
+                        <Label>Select a player to update:</Label>
+                        {isLoadingPlayers ? (
+                          <div className="py-2">
+                            <RefreshCcw className="animate-spin h-4 w-4 inline mr-2" />
+                            Loading players...
+                          </div>
+                        ) : players && players.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-2 max-h-[250px] overflow-y-auto pr-2">
+                            {players.map((player) => (
+                              <UpdateSinglePlayerScoreMutation key={player.id} player={player} />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-neutral-500">No players found.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
