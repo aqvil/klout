@@ -55,13 +55,18 @@ export default function PlayerPage() {
   // Once we have player details, use the actual ID for getting scores
   const playerId = playerDetails?.player?.id;
   
-  const { data: scoreHistory, isLoading: isLoadingScores } = useQuery<Score[]>({
+  const { 
+    data: scoreHistory, 
+    isLoading: isLoadingScores,
+    isError: isScoresError
+  } = useQuery<Score[]>({
     queryKey: [`/api/players/${playerId}/scores`],
     enabled: !!playerId,
     // Don't retry if we have a valid player but no scores
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error) => {
+      console.log("Score loading error:", error);
       return failureCount < 2 && error?.response?.status !== 404;
-    },
+    }
   });
   
   const isLoading = isLoadingPlayer || isLoadingScores;
@@ -101,6 +106,13 @@ export default function PlayerPage() {
     return count.toString();
   };
   
+  // Add debugging log to see received data
+  useEffect(() => {
+    if (playerDetails) {
+      console.log("Player details received:", playerDetails);
+    }
+  }, [playerDetails]);
+
   // Handle player not found or error situations
   if (isPlayerError) {
     return (
@@ -110,6 +122,43 @@ export default function PlayerPage() {
           <p className="mt-2 text-gray-600">
             The player you're looking for doesn't exist or couldn't be loaded.
           </p>
+          <div className="mt-2 text-gray-600">
+            <small>Debug info: Attempted to load with {slug}</small>
+          </div>
+          <Link href="/rankings">
+            <Button className="mt-4">Go to Rankings</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state while waiting for player data
+  if (isLoadingPlayer) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Loading Player...</h2>
+          <div className="mt-4 flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Also handle the case where player details might be null or undefined even without an error
+  if (!playerDetails) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-amber-600">Player Data Issue</h2>
+          <p className="mt-2 text-gray-600">
+            Player data was successfully requested but could not be processed correctly.
+          </p>
+          <div className="mt-2 text-gray-600">
+            <small>Debug info: Data missing for slug: {slug}, API response was empty</small>
+          </div>
           <Link href="/rankings">
             <Button className="mt-4">Go to Rankings</Button>
           </Link>
