@@ -46,10 +46,17 @@ export default function PlayerPage() {
     isLoading: isLoadingPlayer,
     error: playerError,
     isError: isPlayerError 
-  } = useQuery<PlayerWithStats, Error, PlayerWithStats>({
+  } = useQuery({
     queryKey: [apiEndpoint],
     retry: 1, // Only retry once to avoid excessive requests
     enabled: !!slug,
+    onSuccess: (data) => {
+      console.log("API SUCCESS - Response data:", data);
+    },
+    onError: (error) => {
+      console.error("API ERROR - Failed to fetch:", error);
+      console.log("Error query key:", apiEndpoint);
+    }
   });
   
   // Once we have player details, use the actual ID for getting scores
