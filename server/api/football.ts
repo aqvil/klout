@@ -12,7 +12,7 @@ const RAPIDAPI_BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3';
 // Get API Headers with the latest key from database or environment variable
 // Helper function to get API headers and base URL for the current key
 async function getApiConfig() {
-  // First try to get the key from the database
+  // Get the key from the database - this is the authoritative source
   let apiKey = await storage.getSetting(FOOTBALL_API_KEY);
   
   // If not found in database, fall back to environment variable
@@ -26,26 +26,21 @@ async function getApiConfig() {
     }
   }
 
-  // For testing and development, use our known working API key
   if (!apiKey || apiKey.length === 0) {
-    apiKey = '9cb031a896ff74e836fecef8c218b493';
-    await storage.setSetting(FOOTBALL_API_KEY, apiKey);
-    console.log('Using default API key for development/testing');
-  }
-
-  if (apiKey && apiKey.length > 0) {
+    console.error('FOOTBALL_API_KEY is not set in database or environment variables');
+  } else {
     // Log the first few characters of the API key for debugging (don't log the full key for security)
     console.log(`Football API Key status: Set (starts with: ${apiKey.substring(0, 4)}...)`);
-  } else {
-    console.error('FOOTBALL_API_KEY is not set in database or environment variables');
   }
 
   // For API-Football.com, we need to use the x-apisports-key header
-  // Let's prefer direct API access for better reliability
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'x-apisports-key': apiKey || '',
+    // Add additional headers that might help with request validation
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
   
-  // API-Football.com direct API
-  headers['x-apisports-key'] = apiKey || '';
   console.log('Using direct API-Football.com access with API key');
   
   return {
@@ -68,13 +63,13 @@ export async function testApiConnection(req: Request, res: Response) {
     
     // Get the API configuration with headers and base URL
     const config = await getApiConfig();
-    let apiKey = await storage.getSetting(FOOTBALL_API_KEY) || process.env.FOOTBALL_API_KEY;
+    let apiKey = config.apiKey;
     
-    // For testing, use our default key if none is set
     if (!apiKey) {
-      apiKey = '9cb031a896ff74e836fecef8c218b493';
-      await storage.setSetting(FOOTBALL_API_KEY, apiKey);
-      console.log('Using default API key for testing API connection');
+      return res.status(400).json({
+        success: false,
+        message: 'No API key found. Please set the API key in the settings.'
+      });
     }
     
     // Show the first 4 characters of the API key for verification
