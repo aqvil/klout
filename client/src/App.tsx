@@ -10,6 +10,8 @@ import PlayerPage from "@/pages/player-page";
 import PlayersPage from "@/pages/players-page";
 import AdminPage from "@/pages/admin-page";
 import AboutPage from "@/pages/about-page";
+import ProfilePage from "@/pages/profile-page";
+import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import Header from "./layout/header";
@@ -22,8 +24,10 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/rankings" component={RankingsPage} />
       <Route path="/players" component={PlayersPage} />
-      <Route path="/players/:id" component={PlayerPage} />
+      <Route path="/player/:id" component={PlayerPage} />
       <Route path="/about" component={AboutPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/admin" component={AdminPage} adminOnly={true} />
       <Route component={NotFound} />
     </Switch>
