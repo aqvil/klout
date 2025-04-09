@@ -53,6 +53,7 @@ function TestApiConnection() {
   const [apiStatus, setApiStatus] = useState<{
     success: boolean;
     message: string;
+    rateLimit?: boolean;
     leagues?: any[];
   } | null>(null);
   
@@ -62,6 +63,53 @@ function TestApiConnection() {
     
     try {
       const response = await apiRequest("GET", "/api/test-football-api");
+      
+      // Check for rate limit response (429)
+      if (response.status === 429) {
+        const data = await response.json();
+        setApiStatus({
+          success: false,
+          message: data.message || "API rate limit exceeded. The API allows only 50 requests per day.",
+          rateLimit: true
+        });
+        
+        toast({
+          title: "Rate Limit Exceeded",
+          description: "You've reached the daily limit of 50 API requests. Please try again tomorrow.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        let errorMessage = `API responded with status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If we can't parse JSON, try to get text
+          try {
+            const errorText = await response.text();
+            errorMessage = `${errorMessage}. Response: ${errorText.substring(0, 100)}...`;
+          } catch (textError) {
+            // If we can't get text either, just use the status
+          }
+        }
+        
+        setApiStatus({
+          success: false,
+          message: errorMessage
+        });
+        
+        toast({
+          title: "Connection Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // If we got here, we have a successful response
       const data = await response.json();
       setApiStatus(data);
       
@@ -120,6 +168,20 @@ function TestApiConnection() {
           <div className="text-sm">
             {apiStatus.message}
           </div>
+          {apiStatus.rateLimit && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="font-medium text-yellow-800 mb-1">API Rate Limit Information</div>
+              <div className="text-sm text-yellow-700">
+                The Football API limits us to 50 requests per day. Please use the API calls carefully:
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Each player import uses multiple API calls</li>
+                  <li>Try importing just a few players at a time</li>
+                  <li>Test connections only when necessary</li>
+                  <li>Rate limits reset every 24 hours</li>
+                </ul>
+              </div>
+            </div>
+          )}
           {apiStatus.success && apiStatus.leagues && (
             <div className="mt-4">
               <div className="font-medium mb-2">Sample Leagues from API:</div>
@@ -179,14 +241,26 @@ function ImportPlayersMutation() {
   });
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+        <div className="font-medium text-yellow-800 mb-1">API Rate Limit Warning</div>
+        <div className="text-sm text-yellow-700">
+          The Football API has a daily limit of 50 requests. To conserve requests:
+          <ul className="list-disc pl-5 mt-2">
+            <li>Start with just 2-3 players to test the import</li>
+            <li>Each player requires multiple API calls</li>
+            <li>If you hit rate limits, you'll need to wait until tomorrow</li>
+          </ul>
+        </div>
+      </div>
+    
       <div className="flex items-center gap-2">
         <Input
           id="playerLimitInput"
           type="number"
           min="1"
-          max="50"
-          defaultValue={limit.toString()}
+          max="5"
+          defaultValue="2"
           ref={setInputEl}
           className="w-24"
         />
@@ -1107,6 +1181,23 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+                    <h3 className="text-lg font-medium text-amber-800 mb-2">API Rate Limit Reached</h3>
+                    <p className="text-sm text-amber-700 mb-4">
+                      The Football API's daily rate limit of 50 requests has been reached. The application can still function
+                      with existing player data. Some things to know:
+                    </p>
+                    <ul className="text-sm text-amber-700 space-y-1 list-disc pl-5 mb-4">
+                      <li>The rate limit will reset after 24 hours</li>
+                      <li>You can still use all other features of the application</li>
+                      <li>Manual player creation and score updating still work</li>
+                      <li>Existing data will continue to be displayed correctly</li>
+                    </ul>
+                    <p className="text-sm text-amber-700">
+                      In the future, please use the API sparingly by importing only a few players at a time.
+                    </p>
+                  </div>
+                
                   <div className="border rounded-lg p-4 bg-neutral-50">
                     <h3 className="text-lg font-medium mb-2">About the Football API</h3>
                     <p className="text-sm text-neutral-600 mb-4">

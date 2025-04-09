@@ -27,14 +27,42 @@ export async function testApiConnection(req: Request, res: Response) {
       headers: API_HEADERS
     });
 
+    // Log the response status for debugging
+    console.log(`API response status: ${response.status}`);
+
+    // Check if we have a non-success status
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      if (response.status === 429) {
+        // Handle rate limiting specifically
+        return res.status(429).json({
+          success: false,
+          message: 'API rate limit exceeded. The API allows a limited number of requests per day. Please try again later.',
+          rateLimit: true
+        });
+      }
+      
+      // Try to get the error message from the response
+      let errorText;
+      try {
+        errorText = await response.text();
+        console.log('Error response text:', errorText.substring(0, 200)); // Log a preview of the error
+      } catch (e) {
+        errorText = 'Could not read error details';
+      }
+      
+      throw new Error(`API responded with status: ${response.status}. Details: ${errorText.substring(0, 100)}...`);
     }
 
-    const data = await response.json() as any;
+    // Parse the response as JSON
+    let data: any;
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error(`Failed to parse API response as JSON: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
     
-    // Check if we got a valid response
-    if (data && data.response && Array.isArray(data.response) && data.response.length > 0) {
+    // Check if we got a valid response with expected structure
+    if (data && typeof data === 'object' && 'response' in data && Array.isArray(data.response) && data.response.length > 0) {
       console.log('Football API connection successful');
       res.json({ 
         success: true, 
