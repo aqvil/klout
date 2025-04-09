@@ -93,6 +93,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/player-count", async (req, res) => {
+    try {
+      const players = await storage.getAllPlayers();
+      res.json(players.length);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get player count" });
+    }
+  });
+  
   app.get("/api/players/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

@@ -49,6 +49,13 @@ export default function HomePage() {
     return num.toString();
   };
   
+  // Count total players
+  const { data: playerCount } = useQuery<number>({
+    queryKey: ["/api/player-count"],
+    select: (data) => data || 0,
+    initialData: 0
+  });
+  
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
@@ -56,8 +63,11 @@ export default function HomePage() {
         <div className="bg-primary rounded-xl shadow-lg overflow-hidden">
           <div className="md:flex">
             <div className="md:w-1/2 p-8 md:p-12">
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">Soccer Players Influence Ranking</h1>
-              <p className="text-neutral-100 mb-6">Track and compare the influence of your favorite players based on their social presence, game performance, and fan engagement.</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">Klout.soccer Player Influence</h1>
+              <p className="text-neutral-100 mb-6">
+                Tracking real-time influence metrics for {playerCount || "thousands of"} soccer players based on performance, 
+                social media presence, and fan engagement.
+              </p>
               <div className="flex space-x-4">
                 <Link href="/rankings">
                   <Button className="bg-secondary hover:bg-secondary-dark text-white px-6 py-3 rounded-lg font-medium">
@@ -72,11 +82,47 @@ export default function HomePage() {
               </div>
             </div>
             <div className="md:w-1/2 relative" style={{ minHeight: "240px" }}>
-              <img 
-                src="https://images.unsplash.com/photo-1575361204480-aadea25e6e68?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                alt="Soccer players celebrating" 
-                className="absolute inset-0 w-full h-full object-cover object-center" 
-              />
+              {topPerformancePlayers && topPerformancePlayers.length > 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-primary to-primary-dark p-4">
+                  <div className="text-center text-white">
+                    <h2 className="text-2xl font-bold mb-3">Top Player: {topPerformancePlayers[0]?.player.name}</h2>
+                    <div className="flex justify-center">
+                      <img 
+                        src={topPerformancePlayers[0]?.player.profileImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(topPerformancePlayers[0]?.player.name)}&size=100&background=random`}
+                        alt={topPerformancePlayers[0]?.player.name} 
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white" 
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null; 
+                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(topPerformancePlayers[0]?.player.name)}&size=100&background=random`;
+                        }}
+                      />
+                    </div>
+                    <p className="mt-2 opacity-90">Team: {topPerformancePlayers[0]?.player.team}</p>
+                    <div className="mt-3 flex justify-center space-x-4">
+                      <div>
+                        <div className="text-2xl font-bold">{Math.round(topPerformancePlayers[0]?.score.totalScore)}%</div>
+                        <div className="text-xs opacity-75">Overall</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold">{Math.round(topPerformancePlayers[0]?.score.performanceScore)}%</div>
+                        <div className="text-xs opacity-75">Performance</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold">{Math.round(topPerformancePlayers[0]?.score.socialScore)}%</div>
+                        <div className="text-xs opacity-75">Social</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-primary-dark flex items-center justify-center">
+                  <div className="text-white text-center p-6">
+                    <h2 className="text-2xl font-bold mb-2">Loading Player Data...</h2>
+                    <p>Real-time metrics from top leagues worldwide</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -214,7 +260,7 @@ export default function HomePage() {
                         <ProgressBar value={Math.round(item.score.performanceScore)} color="secondary" />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">
-                        <TrendIndicator value={Math.random() > 0.5 ? 3 : -2} />
+                        <TrendIndicator value={Math.round((item.score.totalScore - 50) / 10)} />
                       </td>
                     </tr>
                   ))
@@ -230,7 +276,7 @@ export default function HomePage() {
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-neutral-700">
-                  Showing <span className="font-medium">1</span> to <span className="font-medium">5</span> of <span className="font-medium">100</span> players
+                  Showing <span className="font-medium">1</span> to <span className="font-medium">{rankings?.length || 0}</span> of <span className="font-medium">{playerCount || 0}</span> players
                 </p>
               </div>
               <div>
@@ -406,7 +452,7 @@ export default function HomePage() {
         <div className="bg-neutral-900 rounded-xl shadow-lg overflow-hidden">
           <div className="md:flex">
             <div className="md:w-1/2 p-8 md:p-12">
-              <span className="inline-block bg-secondary/20 text-secondary text-xs font-semibold px-3 py-1 rounded-full mb-4">New Feature</span>
+              <span className="inline-block bg-secondary/20 text-secondary text-xs font-semibold px-3 py-1 rounded-full mb-4">Klout Analytics</span>
               <h2 className="text-3xl font-bold text-white mb-4">Score Calculation Transparency</h2>
               <p className="text-neutral-300 mb-6">Understand exactly how player influence scores are calculated with our transparent algorithm and detailed metrics breakdown.</p>
               <ul className="space-y-3 text-neutral-300 mb-8">
@@ -434,60 +480,78 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="md:w-1/2 relative" style={{ minHeight: "320px" }}>
-              <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 p-8">
-                <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-full max-w-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-white">Score Breakdown</h3>
-                    <div className="text-2xl font-bold text-secondary">92</div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-neutral-300">Social Media</span>
-                        <span className="text-sm font-medium text-neutral-300">95%</span>
+              {rankings && rankings.length > 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 p-8">
+                  <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-full max-w-sm">
+                    <div className="flex items-center mb-4">
+                      <div className="h-12 w-12 mr-3">
+                        <img 
+                          className="h-12 w-12 rounded-full object-cover border-2 border-secondary" 
+                          src={rankings[0]?.player.profileImg} 
+                          alt={rankings[0]?.player.name}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(rankings[0]?.player.name)}&size=100&background=random`;
+                          }}
+                        />
                       </div>
-                      <div className="w-full bg-neutral-700 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: "95%" }}></div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{rankings[0]?.player.name}</h3>
+                        <p className="text-xs text-neutral-400">{rankings[0]?.player.team} • {rankings[0]?.player.country}</p>
                       </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-neutral-300">Game Performance</span>
-                        <span className="text-sm font-medium text-neutral-300">88%</span>
-                      </div>
-                      <div className="w-full bg-neutral-700 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full" style={{ width: "88%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-neutral-300">Fan Engagement</span>
-                        <span className="text-sm font-medium text-neutral-300">93%</span>
-                      </div>
-                      <div className="w-full bg-neutral-700 rounded-full h-2">
-                        <div className="bg-purple-500 h-2 rounded-full" style={{ width: "93%" }}></div>
+                      <div className="ml-auto">
+                        <div className="text-2xl font-bold text-secondary">{Math.round(rankings[0]?.score.totalScore)}</div>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-neutral-300">Media Presence</span>
-                        <span className="text-sm font-medium text-neutral-300">91%</span>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium text-neutral-300">Social Media</span>
+                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.socialScore)}%</span>
+                        </div>
+                        <div className="w-full bg-neutral-700 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.socialScore)}%` }}></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-neutral-700 rounded-full h-2">
-                        <div className="bg-yellow-500 h-2 rounded-full" style={{ width: "91%" }}></div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium text-neutral-300">Game Performance</span>
+                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.performanceScore)}%</span>
+                        </div>
+                        <div className="w-full bg-neutral-700 rounded-full h-2">
+                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.performanceScore)}%` }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium text-neutral-300">Fan Engagement</span>
+                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.engagementScore)}%</span>
+                        </div>
+                        <div className="w-full bg-neutral-700 rounded-full h-2">
+                          <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.engagementScore)}%` }}></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-6 pt-6 border-t border-neutral-700">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Updated 2 days ago</span>
-                      <Link href="/about">
-                        <span className="text-secondary hover:text-secondary-light text-sm cursor-pointer">View Details</span>
-                      </Link>
+                    <div className="mt-6 pt-6 border-t border-neutral-700">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-neutral-400">Live data</span>
+                        <Link href={`/players/${rankings[0]?.player.id}`}>
+                          <span className="text-secondary hover:text-secondary-light text-sm cursor-pointer">View Profile</span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 p-8">
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-white mb-2">Loading Score Data...</h3>
+                    <p className="text-neutral-400 mb-4">Fetching real-time metrics from our database</p>
+                    <div className="w-12 h-12 border-4 border-neutral-600 border-t-secondary rounded-full animate-spin mx-auto"></div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
