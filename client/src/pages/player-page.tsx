@@ -538,7 +538,7 @@ export default function PlayerPage() {
                       <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium text-neutral-700">Fan Engagement</span>
                         <span className="text-sm font-medium text-neutral-700">
-                          {playerDetails?.stats.fanEngagement ? `${playerDetails.stats.fanEngagement * 100}%` : 'N/A'}
+                          {playerDetails?.stats.fanEngagement ? `${(playerDetails.stats.fanEngagement * 100).toFixed(2)}%` : 'N/A'}
                         </span>
                       </div>
                       <ProgressBar 

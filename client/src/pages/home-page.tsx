@@ -464,7 +464,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </Link>
-                      <div className="text-sm font-bold text-purple-600">{Math.round(item.score.engagementScore)}%</div>
+                      <div className="text-sm font-bold text-purple-600">{(item.score.engagementScore).toFixed(2)}%</div>
                     </li>
                   ))
                 )}
@@ -553,7 +553,7 @@ export default function HomePage() {
                       <div>
                         <div className="flex justify-between mb-1">
                           <span className="text-sm font-medium text-neutral-300">Fan Engagement</span>
-                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.engagementScore)}%</span>
+                          <span className="text-sm font-medium text-neutral-300">{(rankings[0]?.score.engagementScore).toFixed(2)}%</span>
                         </div>
                         <div className="w-full bg-neutral-700 rounded-full h-2">
                           <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.engagementScore)}%` }}></div>
