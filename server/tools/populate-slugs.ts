@@ -14,8 +14,13 @@ async function populateSlugs() {
     for (const player of players) {
       // Only update players that don't have a slug or have an empty slug
       if (!player.slug) {
-        // Generate slug from name
-        const slug = player.name.toLowerCase().replace(/\s+/g, '-');
+        // Generate slug from name - handle dots, accents, and special characters
+        const slug = player.name
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+            .replace(/[^\w\s-]/g, '') // remove special characters
+            .replace(/\s+/g, '-') // replace spaces with hyphens
+            .replace(/^-+|-+$/g, ''); // trim leading/trailing hyphens
         console.log(`Generating slug for ${player.name}: ${slug}`);
         
         // Update the player with the new slug
