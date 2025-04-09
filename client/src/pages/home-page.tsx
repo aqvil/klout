@@ -339,7 +339,16 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full object-cover" 
+                              src={item.player.profileImg} 
+                              alt={item.player.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Prevent infinite loop
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
@@ -384,7 +393,16 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full object-cover" 
+                              src={item.player.profileImg} 
+                              alt={item.player.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Prevent infinite loop
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
@@ -429,7 +447,16 @@ export default function HomePage() {
                       <Link href={`/players/${item.player.id}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
-                            <img className="h-8 w-8 rounded-full" src={item.player.profileImg} alt={item.player.name} />
+                            <img 
+                              className="h-8 w-8 rounded-full object-cover" 
+                              src={item.player.profileImg} 
+                              alt={item.player.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Prevent infinite loop
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.player.name)}&size=100&background=random`;
+                              }}
+                            />
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
