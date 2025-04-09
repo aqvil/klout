@@ -69,6 +69,18 @@ export default function HomePage() {
     return num.toString();
   };
   
+  // Helper function to create proper player slugs
+  const createProperSlug = (name: string, existingSlug?: string | null) => {
+    if (existingSlug) return existingSlug;
+    
+    return name.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/^-+|-+$/g, ''); // Trim leading/trailing hyphens
+  };
+  
   // Count total players
   const { data: playerCount } = useQuery<number>({
     queryKey: ["/api/player-count"],
@@ -249,7 +261,7 @@ export default function HomePage() {
                         {((rankingsData.pagination.currentPage - 1) * rankingsData.pagination.playersPerPage) + index + 1}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link href={`/player/${item.player.slug || item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link href={`/player/${createProperSlug(item.player.name, item.player.slug)}`}>
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 

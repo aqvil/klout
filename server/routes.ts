@@ -633,6 +633,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Social media scraping endpoint
   app.post("/api/players/:id/scrape-social-media", requireAdmin, updatePlayerStatsFromSocialMedia);
   
+  // Endpoint to fix all player slugs
+  app.get("/api/fix-player-slugs", async (req, res) => {
+    try {
+      console.log('Running slug fixing tool...');
+      
+      // Import and run the slug fixing function
+      const { fixPlayerSlugs } = await import('./tools/fix-player-slugs');
+      const result = await fixPlayerSlugs();
+      
+      console.log('Slug fixing completed:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fixing player slugs:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fix player slugs', 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
   // Football API integration endpoints
   
   // Test Football API connection
