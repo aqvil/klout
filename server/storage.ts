@@ -1,9 +1,20 @@
-import { users, type User, type InsertUser, players, type Player, type InsertPlayer, playerStats, type PlayerStats, type InsertPlayerStats, scores, type Score, type InsertScore, type PlayerWithStats, settings } from "@shared/schema";
+import { 
+  users, type User, type InsertUser, 
+  players, type Player, type InsertPlayer, 
+  playerStats, type PlayerStats, type InsertPlayerStats, 
+  scores, type Score, type InsertScore, 
+  settings,
+  userProfiles, type UserProfile, type InsertUserProfile,
+  playerFollows, type PlayerFollow, type InsertPlayerFollow,
+  playerComments, type PlayerComment, type InsertPlayerComment,
+  playerRatings, type PlayerRating, type InsertPlayerRating,
+  type PlayerWithStats
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { db } from "./db";
-import { eq, desc, asc, and, sql } from "drizzle-orm";
+import { eq, desc, asc, and, sql, avg } from "drizzle-orm";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
@@ -15,6 +26,11 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // User Profile operations
+  getUserProfile(userId: number): Promise<UserProfile | undefined>;
+  createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
+  updateUserProfile(userId: number, profile: Partial<InsertUserProfile>): Promise<UserProfile | undefined>;
   
   // Player operations
   getAllPlayers(): Promise<Player[]>;
@@ -42,6 +58,25 @@ export interface IStorage {
   // Settings operations
   getSetting(key: string): Promise<string | null>;
   setSetting(key: string, value: string): Promise<void>;
+  
+  // Player Follow operations
+  followPlayer(userId: number, playerId: number): Promise<PlayerFollow>;
+  unfollowPlayer(userId: number, playerId: number): Promise<boolean>;
+  getPlayerFollowers(playerId: number): Promise<User[]>;
+  getUserFollowing(userId: number): Promise<Player[]>;
+  isFollowing(userId: number, playerId: number): Promise<boolean>;
+  
+  // Player Comment operations
+  createPlayerComment(comment: InsertPlayerComment): Promise<PlayerComment>;
+  getPlayerComments(playerId: number): Promise<{comment: PlayerComment, user: User}[]>;
+  getUserComments(userId: number): Promise<{comment: PlayerComment, player: Player}[]>;
+  deletePlayerComment(commentId: number, userId: number): Promise<boolean>;
+  
+  // Player Rating operations
+  createOrUpdatePlayerRating(rating: InsertPlayerRating): Promise<PlayerRating>;
+  getPlayerRatings(playerId: number): Promise<PlayerRating[]>;
+  getUserRating(userId: number, playerId: number): Promise<PlayerRating | undefined>;
+  getPlayerAverageRating(playerId: number): Promise<number>;
   
   // Session store
   sessionStore: any;
@@ -295,6 +330,193 @@ export class MemStorage implements IStorage {
   async setSetting(key: string, value: string): Promise<void> {
     this.settings.set(key, value);
   }
+
+  // User Profile operations
+  private userProfiles: Map<number, UserProfile> = new Map();
+  private currentProfileId: number = 1;
+
+  async getUserProfile(userId: number): Promise<UserProfile | undefined> {
+    return Array.from(this.userProfiles.values()).find(
+      profile => profile.userId === userId
+    );
+  }
+
+  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+    const id = this.currentProfileId++;
+    const newProfile: UserProfile = {
+      ...profile,
+      id,
+      displayName: profile.displayName || null,
+      bio: profile.bio || null,
+      avatarUrl: profile.avatarUrl || null,
+      location: profile.location || null,
+      favoriteTeam: profile.favoriteTeam || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.userProfiles.set(id, newProfile);
+    return newProfile;
+  }
+
+  async updateUserProfile(userId: number, profile: Partial<InsertUserProfile>): Promise<UserProfile | undefined> {
+    const existingProfile = Array.from(this.userProfiles.values()).find(
+      p => p.userId === userId
+    );
+    if (!existingProfile) return undefined;
+    
+    const updatedProfile = {
+      ...existingProfile,
+      ...profile,
+      updatedAt: new Date()
+    };
+    this.userProfiles.set(existingProfile.id, updatedProfile);
+    return updatedProfile;
+  }
+
+  // Player Follow operations
+  private playerFollows: Map<string, PlayerFollow> = new Map();
+
+  async followPlayer(userId: number, playerId: number): Promise<PlayerFollow> {
+    const key = `${userId}-${playerId}`;
+    const existingFollow = this.playerFollows.get(key);
+    
+    if (existingFollow) {
+      return existingFollow;
+    }
+    
+    const newFollow: PlayerFollow = {
+      userId,
+      playerId,
+      createdAt: new Date()
+    };
+    this.playerFollows.set(key, newFollow);
+    return newFollow;
+  }
+
+  async unfollowPlayer(userId: number, playerId: number): Promise<boolean> {
+    const key = `${userId}-${playerId}`;
+    return this.playerFollows.delete(key);
+  }
+
+  async getPlayerFollowers(playerId: number): Promise<User[]> {
+    const userIds = Array.from(this.playerFollows.values())
+      .filter(follow => follow.playerId === playerId)
+      .map(follow => follow.userId);
+    
+    return Array.from(this.users.values())
+      .filter(user => userIds.includes(user.id));
+  }
+
+  async getUserFollowing(userId: number): Promise<Player[]> {
+    const playerIds = Array.from(this.playerFollows.values())
+      .filter(follow => follow.userId === userId)
+      .map(follow => follow.playerId);
+    
+    return Array.from(this.players.values())
+      .filter(player => playerIds.includes(player.id));
+  }
+
+  async isFollowing(userId: number, playerId: number): Promise<boolean> {
+    const key = `${userId}-${playerId}`;
+    return this.playerFollows.has(key);
+  }
+
+  // Player Comment operations
+  private playerComments: Map<number, PlayerComment> = new Map();
+  private currentCommentId: number = 1;
+
+  async createPlayerComment(comment: InsertPlayerComment): Promise<PlayerComment> {
+    const id = this.currentCommentId++;
+    const newComment: PlayerComment = {
+      ...comment,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.playerComments.set(id, newComment);
+    return newComment;
+  }
+
+  async getPlayerComments(playerId: number): Promise<{comment: PlayerComment, user: User}[]> {
+    const comments = Array.from(this.playerComments.values())
+      .filter(comment => comment.playerId === playerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    return comments.map(comment => {
+      const user = this.users.get(comment.userId);
+      if (!user) throw new Error(`User not found for comment ${comment.id}`);
+      return { comment, user };
+    });
+  }
+
+  async getUserComments(userId: number): Promise<{comment: PlayerComment, player: Player}[]> {
+    const comments = Array.from(this.playerComments.values())
+      .filter(comment => comment.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    return comments.map(comment => {
+      const player = this.players.get(comment.playerId);
+      if (!player) throw new Error(`Player not found for comment ${comment.id}`);
+      return { comment, player };
+    });
+  }
+
+  async deletePlayerComment(commentId: number, userId: number): Promise<boolean> {
+    const comment = this.playerComments.get(commentId);
+    if (!comment || comment.userId !== userId) return false;
+    
+    return this.playerComments.delete(commentId);
+  }
+
+  // Player Rating operations
+  private playerRatings: Map<number, PlayerRating> = new Map();
+  private currentRatingId: number = 1;
+
+  async createOrUpdatePlayerRating(rating: InsertPlayerRating): Promise<PlayerRating> {
+    const existingRating = Array.from(this.playerRatings.values()).find(
+      r => r.userId === rating.userId && r.playerId === rating.playerId
+    );
+    
+    if (existingRating) {
+      const updatedRating = {
+        ...existingRating,
+        rating: rating.rating,
+        updatedAt: new Date()
+      };
+      this.playerRatings.set(existingRating.id, updatedRating);
+      return updatedRating;
+    } else {
+      const id = this.currentRatingId++;
+      const newRating: PlayerRating = {
+        ...rating,
+        id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.playerRatings.set(id, newRating);
+      return newRating;
+    }
+  }
+
+  async getPlayerRatings(playerId: number): Promise<PlayerRating[]> {
+    return Array.from(this.playerRatings.values())
+      .filter(rating => rating.playerId === playerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getUserRating(userId: number, playerId: number): Promise<PlayerRating | undefined> {
+    return Array.from(this.playerRatings.values()).find(
+      rating => rating.userId === userId && rating.playerId === playerId
+    );
+  }
+
+  async getPlayerAverageRating(playerId: number): Promise<number> {
+    const ratings = await this.getPlayerRatings(playerId);
+    if (ratings.length === 0) return 0;
+    
+    const sum = ratings.reduce((total, rating) => total + rating.rating, 0);
+    return sum / ratings.length;
+  }
 }
 
 // Database storage implementation
@@ -528,6 +750,219 @@ export class DatabaseStorage implements IStorage {
         .insert(settings)
         .values({ key, value });
     }
+  }
+
+  // User Profile operations
+  async getUserProfile(userId: number): Promise<UserProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+    return profile;
+  }
+
+  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+    const [newProfile] = await db
+      .insert(userProfiles)
+      .values(profile)
+      .returning();
+    return newProfile;
+  }
+
+  async updateUserProfile(userId: number, profile: Partial<InsertUserProfile>): Promise<UserProfile | undefined> {
+    const [updatedProfile] = await db
+      .update(userProfiles)
+      .set({ ...profile, updatedAt: new Date() })
+      .where(eq(userProfiles.userId, userId))
+      .returning();
+    return updatedProfile;
+  }
+
+  // Player Follow operations
+  async followPlayer(userId: number, playerId: number): Promise<PlayerFollow> {
+    // Check if already following
+    const isAlreadyFollowing = await this.isFollowing(userId, playerId);
+    if (isAlreadyFollowing) {
+      // Return the existing follow record
+      const [follow] = await db
+        .select()
+        .from(playerFollows)
+        .where(and(
+          eq(playerFollows.userId, userId),
+          eq(playerFollows.playerId, playerId)
+        ));
+      return follow;
+    }
+
+    const [follow] = await db
+      .insert(playerFollows)
+      .values({
+        userId,
+        playerId,
+        createdAt: new Date()
+      })
+      .returning();
+    return follow;
+  }
+
+  async unfollowPlayer(userId: number, playerId: number): Promise<boolean> {
+    const result = await db
+      .delete(playerFollows)
+      .where(and(
+        eq(playerFollows.userId, userId),
+        eq(playerFollows.playerId, playerId)
+      ));
+    return true;
+  }
+
+  async getPlayerFollowers(playerId: number): Promise<User[]> {
+    const followers = await db
+      .select({
+        user: users
+      })
+      .from(playerFollows)
+      .where(eq(playerFollows.playerId, playerId))
+      .innerJoin(users, eq(playerFollows.userId, users.id));
+    
+    return followers.map(item => item.user);
+  }
+
+  async getUserFollowing(userId: number): Promise<Player[]> {
+    const following = await db
+      .select({
+        player: players
+      })
+      .from(playerFollows)
+      .where(eq(playerFollows.userId, userId))
+      .innerJoin(players, eq(playerFollows.playerId, players.id));
+    
+    return following.map(item => item.player);
+  }
+
+  async isFollowing(userId: number, playerId: number): Promise<boolean> {
+    const [follow] = await db
+      .select()
+      .from(playerFollows)
+      .where(and(
+        eq(playerFollows.userId, userId),
+        eq(playerFollows.playerId, playerId)
+      ));
+    return !!follow;
+  }
+
+  // Player Comment operations
+  async createPlayerComment(comment: InsertPlayerComment): Promise<PlayerComment> {
+    const [newComment] = await db
+      .insert(playerComments)
+      .values({
+        ...comment,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newComment;
+  }
+
+  async getPlayerComments(playerId: number): Promise<{comment: PlayerComment, user: User}[]> {
+    const comments = await db
+      .select({
+        comment: playerComments,
+        user: users
+      })
+      .from(playerComments)
+      .where(eq(playerComments.playerId, playerId))
+      .innerJoin(users, eq(playerComments.userId, users.id))
+      .orderBy(desc(playerComments.createdAt));
+    
+    return comments;
+  }
+
+  async getUserComments(userId: number): Promise<{comment: PlayerComment, player: Player}[]> {
+    const comments = await db
+      .select({
+        comment: playerComments,
+        player: players
+      })
+      .from(playerComments)
+      .where(eq(playerComments.userId, userId))
+      .innerJoin(players, eq(playerComments.playerId, players.id))
+      .orderBy(desc(playerComments.createdAt));
+    
+    return comments;
+  }
+
+  async deletePlayerComment(commentId: number, userId: number): Promise<boolean> {
+    // Only allow users to delete their own comments
+    const result = await db
+      .delete(playerComments)
+      .where(and(
+        eq(playerComments.id, commentId),
+        eq(playerComments.userId, userId)
+      ));
+    return true;
+  }
+
+  // Player Rating operations
+  async createOrUpdatePlayerRating(rating: InsertPlayerRating): Promise<PlayerRating> {
+    // Check if user has already rated this player
+    const existingRating = await this.getUserRating(rating.userId, rating.playerId);
+    
+    if (existingRating) {
+      // Update existing rating
+      const [updatedRating] = await db
+        .update(playerRatings)
+        .set({
+          rating: rating.rating,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(playerRatings.userId, rating.userId),
+          eq(playerRatings.playerId, rating.playerId)
+        ))
+        .returning();
+      return updatedRating;
+    } else {
+      // Create new rating
+      const [newRating] = await db
+        .insert(playerRatings)
+        .values({
+          ...rating,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return newRating;
+    }
+  }
+
+  async getPlayerRatings(playerId: number): Promise<PlayerRating[]> {
+    return await db
+      .select()
+      .from(playerRatings)
+      .where(eq(playerRatings.playerId, playerId))
+      .orderBy(desc(playerRatings.createdAt));
+  }
+
+  async getUserRating(userId: number, playerId: number): Promise<PlayerRating | undefined> {
+    const [rating] = await db
+      .select()
+      .from(playerRatings)
+      .where(and(
+        eq(playerRatings.userId, userId),
+        eq(playerRatings.playerId, playerId)
+      ));
+    return rating;
+  }
+
+  async getPlayerAverageRating(playerId: number): Promise<number> {
+    const [result] = await db
+      .select({
+        averageRating: avg(playerRatings.rating)
+      })
+      .from(playerRatings)
+      .where(eq(playerRatings.playerId, playerId));
+    
+    return result && typeof result.averageRating === 'number' ? result.averageRating : 0;
   }
 }
 
