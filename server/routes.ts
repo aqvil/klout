@@ -659,22 +659,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Process and save players to the database
+      const savedPlayers = [];
+      const existingPlayers = await storage.getAllPlayers();
+      
+      // Handle different API response formats
+      let processedPlayers = players;
+      
+      // If the response has a nested player object structure
+      if (players.length > 0 && players[0].player) {
+        processedPlayers = players.map((item: any) => ({
+          ...item.player,
+          statistics: item.statistics
+        }));
+        console.log(`Extracted ${processedPlayers.length} players from nested format`);
+      }
+      
+      // Process each player
+      for (const apiPlayer of processedPlayers) {
+        try {
+          if (!apiPlayer.name) {
+            console.log('Missing player name in API response, skipping');
+            continue;
+          }
+          
+          // Check if player already exists by API ID or name
+          const existingPlayer = existingPlayers.find(
+            p => p.apiId === apiPlayer.id || p.name === apiPlayer.name
+          );
+          
+          if (existingPlayer) {
+            console.log(`Player ${apiPlayer.name} already exists, updating information`);
+            
+            // Update basic player info
+            const updatedPlayer = await storage.updatePlayer(existingPlayer.id, {
+              name: apiPlayer.name,
+              position: apiPlayer.position || 'Unknown',
+              country: apiPlayer.nationality || 'Unknown',
+              apiId: apiPlayer.id,
+              photo: apiPlayer.photo,
+              club: apiPlayer.statistics && apiPlayer.statistics[0]?.team?.name || 'Unknown',
+              status: 'active'
+            });
+            
+            savedPlayers.push(updatedPlayer);
+          } else {
+            console.log(`Creating new player: ${apiPlayer.name}`);
+            
+            // Generate slug from name
+            const slug = apiPlayer.name
+              .toLowerCase()
+              .replace(/[^\w\s]/g, '')
+              .replace(/\s+/g, '-');
+            
+            // Team name is required, so make sure we have it
+            let teamName = 'Unknown Team';
+            if (apiPlayer.statistics && apiPlayer.statistics[0]?.team?.name) {
+              teamName = apiPlayer.statistics[0].team.name;
+            } else {
+              // If no team info in statistics, use team ID to set a default team name
+              teamName = `Team ${teamId}`;
+            }
+            
+            // Create new player record with required fields based on our schema
+            const newPlayer = await storage.createPlayer({
+              name: apiPlayer.name,
+              position: apiPlayer.position || 'Unknown',
+              country: apiPlayer.nationality || 'Unknown',
+              slug: slug,
+              team: teamName, // Use the team name we determined
+              profileImg: apiPlayer.photo || 'https://media.api-sports.io/football/players/default.png', // Use photo as profileImg
+              bio: `Professional footballer playing for ${teamName}`,
+              instagramUrl: null,
+              twitterUrl: null,
+              facebookUrl: null
+            });
+            
+            console.log(`Created player ${newPlayer.name} with ID ${newPlayer.id}`);
+            
+            // Create basic stats for the player based on schema fields
+            const stats = await storage.createPlayerStats({
+              playerId: newPlayer.id,
+              goals: apiPlayer.statistics && apiPlayer.statistics[0]?.goals?.total || 0,
+              assists: apiPlayer.statistics && apiPlayer.statistics[0]?.goals?.assists || 0,
+              yellowCards: apiPlayer.statistics && apiPlayer.statistics[0]?.cards?.yellow || 0,
+              redCards: apiPlayer.statistics && apiPlayer.statistics[0]?.cards?.red || 0,
+              instagramFollowers: Math.floor(Math.random() * 1000000) + 10000, // Placeholder until we get real data
+              twitterFollowers: Math.floor(Math.random() * 500000) + 5000,     // Placeholder until we get real data
+              facebookFollowers: Math.floor(Math.random() * 800000) + 8000,    // Placeholder until we get real data
+              fanEngagement: 50 // Default engagement score
+            });
+            
+            console.log(`Created stats for player ${newPlayer.name}`);
+            
+            // Calculate initial scores based on actual stats fields
+            const performanceScore = (stats.goals * 3) + (stats.assists * 2);
+            const socialScore = (stats.instagramFollowers * 0.000003) + 
+                              (stats.twitterFollowers * 0.000005) + 
+                              (stats.facebookFollowers * 0.000002);
+            const engagementScore = stats.fanEngagement || 60; // Use the value we set or default
+            
+            // Calculate total influence score (weighted average)
+            const totalScore = (performanceScore * 0.4) + (socialScore * 0.4) + (engagementScore * 0.2);
+            
+            // Create score record
+            await storage.createScore({
+              playerId: newPlayer.id,
+              performanceScore: parseFloat(performanceScore.toFixed(2)),
+              socialScore: parseFloat(socialScore.toFixed(2)),
+              engagementScore: engagementScore,
+              totalScore: parseFloat(totalScore.toFixed(2))
+            });
+            
+            console.log(`Created scores for player ${newPlayer.name}`);
+            savedPlayers.push(newPlayer);
+          }
+        } catch (error) {
+          console.error(`Error saving player ${apiPlayer.name || 'unknown'}:`, error);
+        }
+      }
+      
       // Simplify player data for the response to avoid large payloads
-      const simplifiedPlayers = players.map((player: any) => {
-        // Handle both data structures (direct player or nested player)
-        const playerData = player.player || player;
+      const simplifiedPlayers = processedPlayers.map((player: any) => {
         return {
-          id: playerData.id,
-          name: playerData.name,
-          position: playerData.position || 'Unknown',
-          nationality: playerData.nationality || 'Unknown',
-          photo: playerData.photo
+          id: player.id,
+          name: player.name,
+          position: player.position || 'Unknown',
+          nationality: player.nationality || 'Unknown',
+          photo: player.photo
         };
       });
       
       res.json({
         success: true,
-        message: `Found ${players.length} players in team ${teamId}`,
+        message: `Found ${players.length} players in team ${teamId}, saved ${savedPlayers.length} to database`,
         players: simplifiedPlayers
       });
     } catch (error) {
