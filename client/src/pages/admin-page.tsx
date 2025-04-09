@@ -167,7 +167,7 @@ function TestApiConnection() {
         onClick={testApiConnection}
         disabled={isLoading}
         variant="outline"
-        className="w-full"
+        className="w-full border-primary/40 hover:bg-primary/10"
       >
         {isLoading ? (
           <>
@@ -449,7 +449,7 @@ function AutoUpdateManagement() {
             onClick={() => runNowMutation.mutate()}
             disabled={runNowMutation.isPending}
             variant="outline"
-            className="w-full"
+            className="w-full border-primary/40 hover:bg-primary/10"
           >
             {runNowMutation.isPending ? (
               <>
