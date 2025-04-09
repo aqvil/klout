@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { PlayerWithStats } from "@shared/schema";
+import { PlayerWithStats, Score } from "@shared/schema";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,8 +12,8 @@ import { PlayerImage } from "@/components/ui/player-image";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
-// Mock chart function (would be replaced with Chart.js in production)
-const drawChart = (canvasRef: React.RefObject<HTMLCanvasElement>, scores: number[] = []) => {
+// Real chart function using player score data
+const drawChart = (canvasRef: React.RefObject<HTMLCanvasElement>, scoreData: Score[] = []) => {
   if (!canvasRef.current) return;
   
   const ctx = canvasRef.current.getContext('2d');
@@ -45,19 +45,32 @@ const drawChart = (canvasRef: React.RefObject<HTMLCanvasElement>, scores: number
   }
   ctx.stroke();
   
-  // Use the scores or create mock data if none provided
-  const data = scores.length > 0 ? scores : [75, 78, 80, 79, 82, 85, 84, 88, 90, 92, 91, 92];
+  // Use the actual score data
+  const scores = scoreData.length > 0 
+    ? scoreData.map(score => score.totalScore) 
+    : []; // Handled by component
+  
+  // Add labels for axis
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "10px Inter, sans-serif";
+  ctx.textAlign = "right";
+  
+  for (let i = 0; i <= 5; i++) {
+    const y = height - (i / 5) * height;
+    const label = (i * 20).toString();
+    ctx.fillText(label, 20, y + 4);
+  }
   
   // Draw line
   ctx.strokeStyle = "#0F4C81";
   ctx.lineWidth = 3;
   ctx.beginPath();
   
-  const xStep = width / (data.length - 1);
+  const xStep = scores.length > 1 ? width / (scores.length - 1) : width / 2;
   
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < scores.length; i++) {
     const x = i * xStep;
-    const y = height - (data[i] / 100) * height;
+    const y = height - (scores[i] / 100) * height;
     
     if (i === 0) {
       ctx.moveTo(x, y);
@@ -70,13 +83,35 @@ const drawChart = (canvasRef: React.RefObject<HTMLCanvasElement>, scores: number
   
   // Add points
   ctx.fillStyle = "#0F4C81";
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < scores.length; i++) {
     const x = i * xStep;
-    const y = height - (data[i] / 100) * height;
+    const y = height - (scores[i] / 100) * height;
     
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
+  }
+  
+  // Add date labels if we have multiple points
+  if (scores.length > 1) {
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "10px Inter, sans-serif";
+    ctx.textAlign = "center";
+    
+    // Add just a few labels to avoid clutter
+    const labelsToShow = Math.min(6, scores.length);
+    const step = Math.floor(scores.length / labelsToShow);
+    
+    for (let i = 0; i < scores.length; i += step) {
+      if (i < scores.length) {
+        const x = i * xStep;
+        // Format date nicely if available, or just show index
+        const label = scoreData[i]?.date 
+          ? new Date(scoreData[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : `Point ${i+1}`;
+        ctx.fillText(label, x, height - 5);
+      }
+    }
   }
 };
 
@@ -85,17 +120,24 @@ export default function PlayerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const numberId = Number(id);
 
-  const { data: playerDetails, isLoading } = useQuery<PlayerWithStats>({
+  const { data: playerDetails, isLoading: isLoadingPlayer } = useQuery<PlayerWithStats>({
     queryKey: [`/api/player-details/${id}`],
     enabled: !isNaN(numberId),
   });
+  
+  const { data: scoreHistory, isLoading: isLoadingScores } = useQuery<Score[]>({
+    queryKey: [`/api/players/${id}/scores`],
+    enabled: !isNaN(numberId),
+  });
+  
+  const isLoading = isLoadingPlayer || isLoadingScores;
 
-  // Draw chart when component mounts or data changes
+  // Draw chart when component mounts or score history changes
   useEffect(() => {
-    if (playerDetails) {
-      drawChart(canvasRef);
+    if (playerDetails && canvasRef.current) {
+      drawChart(canvasRef, scoreHistory || []);
     }
-  }, [playerDetails]);
+  }, [playerDetails, scoreHistory]);
   
   // Format follower count
   const formatFollowers = (count: number): string => {
@@ -165,15 +207,39 @@ export default function PlayerPage() {
               )}
               
               <div className="flex space-x-4 mb-6">
-                <a href="#" className="text-blue-500 hover:text-blue-600">
-                  <FaTwitter className="text-xl" />
-                </a>
-                <a href="#" className="text-pink-600 hover:text-pink-700">
-                  <FaInstagram className="text-xl" />
-                </a>
-                <a href="#" className="text-blue-800 hover:text-blue-900">
-                  <FaFacebook className="text-xl" />
-                </a>
+                {playerDetails?.player.twitterUrl && (
+                  <a 
+                    href={playerDetails.player.twitterUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-500 hover:text-blue-600"
+                    title={`${playerDetails.player.name} on Twitter`}
+                  >
+                    <FaTwitter className="text-xl" />
+                  </a>
+                )}
+                {playerDetails?.player.instagramUrl && (
+                  <a 
+                    href={playerDetails.player.instagramUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-pink-600 hover:text-pink-700"
+                    title={`${playerDetails.player.name} on Instagram`}
+                  >
+                    <FaInstagram className="text-xl" />
+                  </a>
+                )}
+                {playerDetails?.player.facebookUrl && (
+                  <a 
+                    href={playerDetails.player.facebookUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-800 hover:text-blue-900"
+                    title={`${playerDetails.player.name} on Facebook`}
+                  >
+                    <FaFacebook className="text-xl" />
+                  </a>
+                )}
               </div>
               
               <div className="w-full flex justify-between text-sm border-t border-neutral-200 pt-4">
