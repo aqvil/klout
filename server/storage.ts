@@ -906,10 +906,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserFollowing(userId: number): Promise<Follow[]> {
-    return await db
-      .select()
-      .from(follows)
-      .where(eq(follows.userId, userId));
+    try {
+      const followsWithPlayers = await db
+        .select({
+          follow: follows,
+          player: players
+        })
+        .from(follows)
+        .where(eq(follows.userId, userId))
+        .innerJoin(players, eq(follows.playerId, players.id));
+      
+      return followsWithPlayers.map(result => ({ 
+        ...result.follow,
+        playerName: result.player.name,
+        playerSlug: result.player.slug
+      }));
+    } catch (error) {
+      console.error(`Error getting follows for user ${userId}:`, error);
+      // Return empty array on error rather than throwing
+      return [];
+    }
   }
 
   async isFollowing(userId: number, playerId: number): Promise<boolean> {

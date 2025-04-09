@@ -184,15 +184,21 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[300px] overflow-auto pr-2">
-                    {following.map((follow: Follow & { playerName?: string | null }) => (
+                    {following.map((follow: Follow & { playerName?: string | null, playerSlug?: string | null }) => (
                       <div key={follow.id} className="flex items-center gap-3 p-3 hover:bg-muted/30 rounded-md transition-colors">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs bg-secondary text-white">
-                            {follow.playerName ? follow.playerName[0] : 'P'}
+                            {follow.playerName ? follow.playerName[0].toUpperCase() : 'P'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <Link to={`/player/${follow.playerName ? follow.playerName.toLowerCase().replace(/\s+/g, '-') : follow.playerId}`} className="hover:underline font-medium text-sm block truncate">
+                          <Link 
+                            to={follow.playerSlug 
+                              ? `/player/${follow.playerSlug}` 
+                              : `/player/${follow.playerId}`
+                            } 
+                            className="hover:underline font-medium text-sm block truncate"
+                          >
                             {follow.playerName || `Player ${follow.playerId}`}
                           </Link>
                           <p className="text-xs text-muted-foreground">
