@@ -821,7 +821,7 @@ function UpdateSinglePlayerScoreMutation({ player }: { player: Player }) {
         />
         <div>
           <div className="font-medium">{player.name}</div>
-          <div className="text-xs text-neutral-500">{player.club}</div>
+          <div className="text-xs text-neutral-500">{player.team} • {player.position}</div>
         </div>
       </div>
       <Button
@@ -844,8 +844,8 @@ const playerFormSchema = insertPlayerSchema.extend({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  club: z.string().min(2, {
-    message: "Club must be at least 2 characters.",
+  team: z.string().min(2, {
+    message: "Team must be at least 2 characters.",
   }),
   country: z.string().min(2, {
     message: "Country must be at least 2 characters.",
@@ -900,7 +900,7 @@ export default function AdminPage() {
     resolver: zodResolver(playerFormSchema),
     defaultValues: {
       name: "",
-      club: "",
+      team: "",
       country: "",
       position: "",
       profileImg: "",
@@ -1089,10 +1089,10 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={playerForm.control}
-                        name="club"
+                        name="team"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Club</FormLabel>
+                            <FormLabel>Team</FormLabel>
                             <FormControl>
                               <Input placeholder="Inter Miami CF" {...field} />
                             </FormControl>
@@ -1206,7 +1206,8 @@ export default function AdminPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
-                          <TableHead>Club</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead>Position</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1223,7 +1224,8 @@ export default function AdminPage() {
                                 <span>{player.name}</span>
                               </div>
                             </TableCell>
-                            <TableCell>{player.club}</TableCell>
+                            <TableCell>{player.team}</TableCell>
+                            <TableCell>{player.position}</TableCell>
                             <TableCell className="text-right">
                               <Button
                                 variant="outline"
@@ -1292,7 +1294,7 @@ export default function AdminPage() {
                           />
                           <div className="text-left">
                             <div className="font-medium">{player.name}</div>
-                            <div className="text-xs text-neutral-500">{player.club}</div>
+                            <div className="text-xs text-neutral-500">{player.team} • {player.position}</div>
                           </div>
                         </div>
                       </Button>
@@ -1555,7 +1557,8 @@ export default function AdminPage() {
                       <TableRow>
                         <TableHead>Rank</TableHead>
                         <TableHead>Player</TableHead>
-                        <TableHead>Club</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead>Position</TableHead>
                         <TableHead>Total Score</TableHead>
                         <TableHead>Social</TableHead>
                         <TableHead>Performance</TableHead>
@@ -1576,7 +1579,8 @@ export default function AdminPage() {
                               {item.player.name}
                             </div>
                           </TableCell>
-                          <TableCell>{item.player.club}</TableCell>
+                          <TableCell>{item.player.team}</TableCell>
+                          <TableCell>{item.player.position}</TableCell>
                           <TableCell className="font-bold text-primary">
                             {Math.round(item.score.totalScore)}
                           </TableCell>

@@ -8,7 +8,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  isAdmin: boolean("is_admin").notNull().default(false),
+  isAdmin: boolean("isAdmin").notNull().default(false),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -20,20 +22,21 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  club: text("club").notNull(),
+  team: text("team").notNull(),
   country: text("country").notNull(),
-  position: text("position").notNull(),
-  profileImg: text("profile_img").notNull(),
+  position: text("position").notNull().default("Unknown"),
+  profileImg: text("profileImg"),
   bio: text("bio").notNull().default(""),
-  instagramUrl: text("instagram_url"),
-  twitterUrl: text("twitter_url"),
-  facebookUrl: text("facebook_url"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  instagramUrl: text("instagramUrl"),
+  twitterUrl: text("twitterUrl"),
+  facebookUrl: text("facebookUrl"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
-  club: true,
+  team: true,
   country: true,
   position: true,
   profileImg: true,

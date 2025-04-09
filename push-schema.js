@@ -26,51 +26,51 @@ async function main() {
         id SERIAL PRIMARY KEY,
         username VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        "isAdmin" BOOLEAN NOT NULL DEFAULT FALSE,
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
       -- Players table
       CREATE TABLE IF NOT EXISTS players (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        club VARCHAR(255) NOT NULL,
+        team VARCHAR(255) NOT NULL,
         country VARCHAR(255) NOT NULL,
-        position VARCHAR(255) NOT NULL,
+        position VARCHAR(255) NOT NULL DEFAULT 'Unknown',
         bio TEXT NOT NULL DEFAULT '',
-        profile_img VARCHAR(255),
-        instagram_url VARCHAR(255),
-        twitter_url VARCHAR(255),
-        facebook_url VARCHAR(255),
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        "profileImg" VARCHAR(255),
+        "instagramUrl" VARCHAR(255),
+        "twitterUrl" VARCHAR(255),
+        "facebookUrl" VARCHAR(255),
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
       -- Player Stats table
       CREATE TABLE IF NOT EXISTS player_stats (
         id SERIAL PRIMARY KEY,
-        player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+        "playerId" INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
         goals INTEGER NOT NULL DEFAULT 0,
         assists INTEGER NOT NULL DEFAULT 0,
-        yellow_cards INTEGER NOT NULL DEFAULT 0,
-        red_cards INTEGER NOT NULL DEFAULT 0,
-        instagram_followers INTEGER NOT NULL DEFAULT 0,
-        twitter_followers INTEGER NOT NULL DEFAULT 0,
-        facebook_followers INTEGER NOT NULL DEFAULT 0,
-        fan_engagement INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        "yellowCards" INTEGER NOT NULL DEFAULT 0,
+        "redCards" INTEGER NOT NULL DEFAULT 0,
+        "instagramFollowers" INTEGER NOT NULL DEFAULT 0,
+        "twitterFollowers" INTEGER NOT NULL DEFAULT 0,
+        "facebookFollowers" INTEGER NOT NULL DEFAULT 0,
+        "fanEngagement" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
       -- Scores table
       CREATE TABLE IF NOT EXISTS scores (
         id SERIAL PRIMARY KEY,
-        player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-        total_score INTEGER NOT NULL,
-        social_score INTEGER NOT NULL,
-        performance_score INTEGER NOT NULL,
-        engagement_score INTEGER NOT NULL,
+        "playerId" INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+        "totalScore" INTEGER NOT NULL,
+        "socialScore" INTEGER NOT NULL,
+        "performanceScore" INTEGER NOT NULL,
+        "engagementScore" INTEGER NOT NULL,
         date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
@@ -79,21 +79,21 @@ async function main() {
         id SERIAL PRIMARY KEY,
         key VARCHAR(255) NOT NULL UNIQUE,
         value TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
       -- User Profiles table
       CREATE TABLE IF NOT EXISTS user_profiles (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-        display_name VARCHAR(255),
+        "userId" INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        "displayName" VARCHAR(255),
         bio TEXT,
-        avatar_url VARCHAR(255),
+        "avatarUrl" VARCHAR(255),
         location VARCHAR(255),
-        favorite_team VARCHAR(255),
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        "favoriteTeam" VARCHAR(255),
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
       
       -- Player Follows table

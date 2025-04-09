@@ -133,7 +133,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, isAdmin: false };
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      isAdmin: false,
+      createdAt: now,
+      updatedAt: now
+    };
     this.users.set(id, user);
     return user;
   }
@@ -149,6 +156,7 @@ export class MemStorage implements IStorage {
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
+    const now = new Date();
     // Make sure bio is not undefined
     const bio = player.bio || "";
     // Make sure social URLs are not undefined
@@ -159,8 +167,11 @@ export class MemStorage implements IStorage {
     const newPlayer: Player = { 
       ...player, 
       id, 
-      createdAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       bio,
+      position: player.position || 'Unknown',
+      profileImg: player.profileImg || null,
       instagramUrl,
       twitterUrl,
       facebookUrl
@@ -561,6 +572,7 @@ export class DatabaseStorage implements IStorage {
     const processedPlayer = {
       ...player,
       bio: player.bio || "",
+      position: player.position || "Unknown",
       instagramUrl: player.instagramUrl === undefined ? null : player.instagramUrl,
       twitterUrl: player.twitterUrl === undefined ? null : player.twitterUrl,
       facebookUrl: player.facebookUrl === undefined ? null : player.facebookUrl,

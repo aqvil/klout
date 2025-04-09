@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Player } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { PlayerImage } from "@/components/ui/player-image";
 
 export default function PlayersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,8 +23,9 @@ export default function PlayersPage() {
         if (searchTerm) {
           return (
             player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            player.club.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            player.country.toLowerCase().includes(searchTerm.toLowerCase())
+            player.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            player.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            player.position.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
         return true;
@@ -75,21 +77,16 @@ export default function PlayersPage() {
             <Link key={player.id} href={`/players/${player.id}`}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                 <div className="aspect-square bg-neutral-100">
-                  <img
-                    src={player.profileImg}
+                  <PlayerImage 
+                    src={player.profileImg || undefined}
                     alt={player.name}
                     className="h-full w-full object-cover"
-                    onError={(e) => {
-                      // Fallback to a placeholder if the image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null; // Prevent infinite loop
-                      target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=300&background=random`;
-                    }}
+                    size={300}
                   />
                 </div>
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-lg mb-1 text-neutral-800">{player.name}</h3>
-                  <p className="text-neutral-500 text-sm mb-2">{player.club}</p>
+                  <p className="text-neutral-500 text-sm mb-2">{player.team} • {player.position}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-neutral-600">{player.country}</span>
                     <Button variant="outline" size="sm" className="text-xs">

@@ -396,7 +396,7 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
           // Format the player data for our database
           const playerData: InsertPlayer = {
             name: playerDetails.name,
-            club: playerDetails.team?.name || 'Unknown Club',
+            team: playerDetails.team?.name || 'Unknown Club',
             country: playerDetails.nationality || 'Unknown',
             position: playerDetails.position || 'Unknown',
             profileImg: playerDetails.photo || 'https://example.com/default-player.jpg',

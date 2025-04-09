@@ -203,7 +203,8 @@ export default function HomePage() {
                           </div>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.club}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.team}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.position}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-lg font-bold text-primary">{Math.round(item.score.totalScore)}</div>
                       </td>
