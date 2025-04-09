@@ -42,17 +42,20 @@ async function getApiConfig() {
   }
 
   // For API-Football.com, we need to use the x-apisports-key header
+  // Various formats are tried here as different API documentation might suggest different formats
   const headers: Record<string, string> = {
-    'x-apisports-key': apiKey || '',
-    // Add additional headers that might help with request validation
+    'x-rapidapi-key': apiKey,
+    'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+    'x-apisports-key': apiKey,
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   };
   
-  console.log('Using direct API-Football.com access with API key');
+  console.log('Using RapidAPI endpoint for API-Football access');
   
+  // Try using RapidAPI endpoint which might work with the same key
   return {
-    baseUrl: DIRECT_API_BASE_URL,
+    baseUrl: RAPIDAPI_BASE_URL,
     headers,
     apiKey: apiKey || ''
   };

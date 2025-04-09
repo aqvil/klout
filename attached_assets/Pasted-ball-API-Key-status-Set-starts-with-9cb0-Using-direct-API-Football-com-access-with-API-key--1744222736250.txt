@@ -1,0 +1,33 @@
+ball API Key status: Set (starts with: 9cb0...)
+Using direct API-Football.com access with API key
+Fetching teams with URL: https://v3.football.api-sports.io/teams?league=2&season=2023
+API response status for teams: 200
+No teams found for league 2, season 2023
+API response: {"get":"teams","parameters":{"league":"2","season":"2023"},"errors":{"token":"Error/Missing application key. Go to https://www.api-football.com/documentation-v3 to learn how to get your API application key."},"results":0,"paging":{"current":1,"total":1},"response":[]}...
+Found 0 teams in Champions League
+No teams found for Champions League, skipping to next league...
+Fetching teams for Europa League (Europe)...
+Football API Key status: Set (starts with: 9cb0...)
+Using direct API-Football.com access with API key
+Fetching teams with URL: https://v3.football.api-sports.io/teams?league=3&season=2023
+API response status for teams: 200
+No teams found for league 3, season 2023
+API response: {"get":"teams","parameters":{"league":"3","season":"2023"},"errors":{"token":"Error/Missing application key. Go to https://www.api-football.com/documentation-v3 to learn how to get your API application key."},"results":0,"paging":{"current":1,"total":1},"response":[]}...
+Found 0 teams in Europa League
+No teams found for Europa League, skipping to next league...
+Fetching teams for Serie A (Brazil)...
+Football API Key status: Set (starts with: 9cb0...)
+Using direct API-Football.com access with API key
+Fetching teams with URL: https://v3.football.api-sports.io/teams?league=71&season=2023
+API response status for teams: 200
+No teams found for league 71, season 2023
+API response: {"get":"teams","parameters":{"league":"71","season":"2023"},"errors":{"token":"Error/Missing application key. Go to https://www.api-football.com/documentation-v3 to learn how to get your API application key."},"results":0,"paging":{"current":1,"total":1},"response":[]}...
+Found 0 teams in Serie A
+No teams found for Serie A, skipping to next league...
+Fetching teams for MLS (USA)...
+Football API Key status: Set (starts with: 9cb0...)
+Using direct API-Football.com access with API key
+Fetching teams with URL: https://v3.football.api-sports.io/teams?league=253&season=2023
+API response status for teams: 200
+No teams found for league 253, season 2023
+API response: {"get":"teams","parameters":{"league":"253","season":"2023"},"errors":{"token":"Error/Missing application key. Go to https://www.api-football.com/documentation-v3 to learn how to get your API application key."},"results":0,"paging":{"current":1,"total":1},"response"
