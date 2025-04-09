@@ -6,7 +6,7 @@ import { TrendIndicator } from "@/components/ui/trend-indicator";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowRight, CheckCircle, Download, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PlayerWithStats } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,17 +24,24 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   
   // Fetch top ranked players with pagination
-  const { data: rankingsData, isLoading: isLoadingRankings } = useQuery<{
-    players: PlayerWithStats[],
-    pagination: {
-      currentPage: number,
-      totalPages: number,
-      totalPlayers: number,
-      playersPerPage: number
-    }
-  }>({
+  const { data: rawRankingsData, isLoading: isLoadingRankings } = useQuery<PlayerWithStats[]>({
     queryKey: ["/api/rankings", { page: currentPage, perPage: 30 }],
   });
+  
+  // Transform the array response to the expected format with pagination info
+  const rankingsData = useMemo(() => {
+    if (!rawRankingsData) return undefined;
+    
+    return {
+      players: rawRankingsData,
+      pagination: {
+        currentPage: currentPage,
+        totalPages: Math.ceil(rawRankingsData.length / 30),
+        totalPlayers: rawRankingsData.length,
+        playersPerPage: 30
+      }
+    };
+  }, [rawRankingsData, currentPage]);
   
   // Fetch top performers by category
   const { data: topSocialPlayers, isLoading: isLoadingSocial } = useQuery<PlayerWithStats[]>({
