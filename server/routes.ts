@@ -21,6 +21,13 @@ import {
 } from "./api/settings";
 import { importAllPlayers } from "./data/import-players";
 import { startAutomaticUpdates, stopAutomaticUpdates, updateAllPlayersData } from "./data/auto-updater";
+import { 
+  insertFanProfileSchema, 
+  insertFollowSchema,
+  insertEngagementSchema, 
+  insertEngagementTypeSchema,
+  insertBadgeSchema
+} from "@shared/schema";
 
 // Helper function to calculate influence scores
 const calculateScores = (stats: any) => {
@@ -614,6 +621,283 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in run-now endpoint:', error);
       res.status(500).json({ message: "Failed to start manual update" });
+    }
+  });
+
+  // Fan Engagement Endpoints
+
+  // Fan Profile endpoints
+  app.get("/api/fan-profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const profile = await storage.getFanProfile(userId);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Fan profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get fan profile" });
+    }
+  });
+
+  app.post("/api/fan-profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Check if profile already exists
+      const existingProfile = await storage.getFanProfile(userId);
+      if (existingProfile) {
+        return res.status(400).json({ message: "Fan profile already exists" });
+      }
+      
+      const profileData = insertFanProfileSchema.parse({ ...req.body, userId });
+      const profile = await storage.createFanProfile(profileData);
+      
+      res.status(201).json(profile);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Failed to create fan profile" });
+    }
+  });
+
+  app.put("/api/fan-profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Check if profile exists
+      const existingProfile = await storage.getFanProfile(userId);
+      if (!existingProfile) {
+        return res.status(404).json({ message: "Fan profile not found" });
+      }
+      
+      const profileData = insertFanProfileSchema.partial().parse(req.body);
+      const profile = await storage.updateFanProfile(userId, profileData);
+      
+      res.json(profile);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Failed to update fan profile" });
+    }
+  });
+
+  // Follow endpoints
+  app.post("/api/follow/:playerId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const playerId = parseInt(req.params.playerId);
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      // Check if player exists
+      const player = await storage.getPlayer(playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+      
+      const follow = await storage.followPlayer(userId, playerId);
+      res.status(201).json(follow);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to follow player" });
+    }
+  });
+
+  app.delete("/api/follow/:playerId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const playerId = parseInt(req.params.playerId);
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const success = await storage.unfollowPlayer(userId, playerId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Follow relationship not found" });
+      }
+      
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unfollow player" });
+    }
+  });
+
+  app.get("/api/follows/player/:playerId", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.playerId);
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const followers = await storage.getPlayerFollowers(playerId);
+      res.json(followers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get player followers" });
+    }
+  });
+
+  app.get("/api/follows/user", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const following = await storage.getUserFollowing(userId);
+      res.json(following);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user following" });
+    }
+  });
+
+  app.get("/api/follows/check/:playerId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const playerId = parseInt(req.params.playerId);
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const isFollowing = await storage.isFollowing(userId, playerId);
+      res.json({ isFollowing });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check follow status" });
+    }
+  });
+
+  // Engagement endpoints
+  app.post("/api/engagements", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      const engagementData = insertEngagementSchema.parse({ ...req.body, userId });
+      const engagement = await storage.createEngagement(engagementData);
+      
+      res.status(201).json(engagement);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Failed to create engagement" });
+    }
+  });
+
+  app.get("/api/engagements/player/:playerId", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.playerId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const engagements = await storage.getPlayerEngagements(playerId, limit);
+      res.json(engagements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get player engagements" });
+    }
+  });
+
+  app.get("/api/engagements/user", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      const engagements = await storage.getUserEngagements(userId, limit);
+      res.json(engagements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user engagements" });
+    }
+  });
+
+  // Engagement Types endpoints
+  app.get("/api/engagement-types", async (req, res) => {
+    try {
+      const types = await storage.getEngagementTypes();
+      res.json(types);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get engagement types" });
+    }
+  });
+
+  app.post("/api/engagement-types", requireAdmin, async (req, res) => {
+    try {
+      const typeData = insertEngagementTypeSchema.parse(req.body);
+      const type = await storage.createEngagementType(typeData);
+      
+      res.status(201).json(type);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Failed to create engagement type" });
+    }
+  });
+
+  // Badge endpoints
+  app.get("/api/badges", async (req, res) => {
+    try {
+      const badges = await storage.getBadges();
+      res.json(badges);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get badges" });
+    }
+  });
+
+  app.post("/api/badges", requireAdmin, async (req, res) => {
+    try {
+      const badgeData = insertBadgeSchema.parse(req.body);
+      const badge = await storage.createBadge(badgeData);
+      
+      res.status(201).json(badge);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Failed to create badge" });
+    }
+  });
+
+  app.post("/api/user-badges/:badgeId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const badgeId = parseInt(req.params.badgeId);
+      
+      if (isNaN(badgeId)) {
+        return res.status(400).json({ message: "Invalid badge ID" });
+      }
+      
+      // Check if badge exists
+      const badge = await storage.getBadge(badgeId);
+      if (!badge) {
+        return res.status(404).json({ message: "Badge not found" });
+      }
+      
+      const userBadge = await storage.assignBadgeToUser(userId, badgeId);
+      res.status(201).json(userBadge);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to assign badge to user" });
+    }
+  });
+
+  app.get("/api/user-badges", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const userBadges = await storage.getUserBadges(userId);
+      res.json(userBadges);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user badges" });
     }
   });
 

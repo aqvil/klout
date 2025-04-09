@@ -1,4 +1,17 @@
-import { users, type User, type InsertUser, players, type Player, type InsertPlayer, playerStats, type PlayerStats, type InsertPlayerStats, scores, type Score, type InsertScore, type PlayerWithStats, settings } from "@shared/schema";
+import { 
+  users, type User, type InsertUser, 
+  players, type Player, type InsertPlayer, 
+  playerStats, type PlayerStats, type InsertPlayerStats, 
+  scores, type Score, type InsertScore, 
+  type PlayerWithStats, 
+  settings, type Settings, type InsertSettings,
+  fanProfiles, type FanProfile, type InsertFanProfile,
+  follows, type Follow, type InsertFollow,
+  engagementTypes, type EngagementType, type InsertEngagementType,
+  engagements, type Engagement, type InsertEngagement,
+  badges, type Badge, type InsertBadge,
+  userBadges, type UserBadge, type InsertUserBadge
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
@@ -43,6 +56,32 @@ export interface IStorage {
   getSetting(key: string): Promise<string | null>;
   setSetting(key: string, value: string): Promise<void>;
   
+  // Fan engagement operations
+  getFanProfile(userId: number): Promise<FanProfile | undefined>;
+  createFanProfile(profile: InsertFanProfile): Promise<FanProfile>;
+  updateFanProfile(userId: number, profile: Partial<InsertFanProfile>): Promise<FanProfile | undefined>;
+  
+  followPlayer(userId: number, playerId: number): Promise<Follow>;
+  unfollowPlayer(userId: number, playerId: number): Promise<boolean>;
+  getPlayerFollowers(playerId: number): Promise<Follow[]>;
+  getUserFollowing(userId: number): Promise<Follow[]>;
+  isFollowing(userId: number, playerId: number): Promise<boolean>;
+  
+  createEngagement(engagement: InsertEngagement): Promise<Engagement>;
+  getPlayerEngagements(playerId: number, limit?: number): Promise<Engagement[]>;
+  getUserEngagements(userId: number, limit?: number): Promise<Engagement[]>;
+  
+  getEngagementTypes(): Promise<EngagementType[]>;
+  getEngagementType(id: number): Promise<EngagementType | undefined>;
+  createEngagementType(type: InsertEngagementType): Promise<EngagementType>;
+  
+  getBadges(): Promise<Badge[]>;
+  getBadge(id: number): Promise<Badge | undefined>;
+  createBadge(badge: InsertBadge): Promise<Badge>;
+  
+  assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge>;
+  getUserBadges(userId: number): Promise<{ badge: Badge, userBadge: UserBadge }[]>;
+  
   // Session store
   sessionStore: any;
 }
@@ -54,10 +93,22 @@ export class MemStorage implements IStorage {
   private playerStats: Map<number, PlayerStats>;
   private scores: Map<number, Score[]>;
   private settings: Map<string, string>;
+  private fanProfiles: Map<number, FanProfile>;
+  private follows: Map<number, Follow>;
+  private engagementTypes: Map<number, EngagementType>;
+  private engagements: Map<number, Engagement>;
+  private badges: Map<number, Badge>;
+  private userBadges: Map<number, UserBadge>;
   private currentUserId: number;
   private currentPlayerId: number;
   private currentStatsId: number;
   private currentScoreId: number;
+  private currentProfileId: number;
+  private currentFollowId: number;
+  private currentEngagementTypeId: number;
+  private currentEngagementId: number;
+  private currentBadgeId: number;
+  private currentUserBadgeId: number;
   sessionStore: any;
 
   constructor() {
@@ -66,10 +117,22 @@ export class MemStorage implements IStorage {
     this.playerStats = new Map();
     this.scores = new Map();
     this.settings = new Map();
+    this.fanProfiles = new Map();
+    this.follows = new Map();
+    this.engagementTypes = new Map();
+    this.engagements = new Map();
+    this.badges = new Map();
+    this.userBadges = new Map();
     this.currentUserId = 1;
     this.currentPlayerId = 1;
     this.currentStatsId = 1;
     this.currentScoreId = 1;
+    this.currentProfileId = 1;
+    this.currentFollowId = 1;
+    this.currentEngagementTypeId = 1;
+    this.currentEngagementId = 1;
+    this.currentBadgeId = 1;
+    this.currentUserBadgeId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // Clear expired sessions every day
     });
@@ -302,6 +365,209 @@ export class MemStorage implements IStorage {
   
   async setSetting(key: string, value: string): Promise<void> {
     this.settings.set(key, value);
+  }
+  
+  // Fan Profile methods
+  async getFanProfile(userId: number): Promise<FanProfile | undefined> {
+    return Array.from(this.fanProfiles.values()).find(
+      profile => profile.userId === userId
+    );
+  }
+
+  async createFanProfile(profile: InsertFanProfile): Promise<FanProfile> {
+    const id = this.currentProfileId++;
+    const newProfile: FanProfile = {
+      ...profile,
+      id,
+      createdAt: new Date(),
+      updatedAt: null,
+      // Ensure null values for optional fields
+      country: profile.country || null,
+      bio: profile.bio || null,
+      avatarUrl: profile.avatarUrl || null,
+      favoriteTeam: profile.favoriteTeam || null
+    };
+    this.fanProfiles.set(id, newProfile);
+    return newProfile;
+  }
+
+  async updateFanProfile(userId: number, profile: Partial<InsertFanProfile>): Promise<FanProfile | undefined> {
+    const existingProfile = Array.from(this.fanProfiles.values()).find(
+      p => p.userId === userId
+    );
+    
+    if (!existingProfile) return undefined;
+    
+    const updatedProfile = {
+      ...existingProfile,
+      ...profile,
+      updatedAt: new Date()
+    };
+    
+    this.fanProfiles.set(existingProfile.id, updatedProfile);
+    return updatedProfile;
+  }
+  
+  // Follow methods
+  async followPlayer(userId: number, playerId: number): Promise<Follow> {
+    // Check if already following
+    const existingFollow = Array.from(this.follows.values()).find(
+      f => f.userId === userId && f.playerId === playerId
+    );
+    
+    if (existingFollow) return existingFollow;
+    
+    // Create new follow
+    const id = this.currentFollowId++;
+    const newFollow: Follow = {
+      id,
+      userId,
+      playerId,
+      createdAt: new Date()
+    };
+    
+    this.follows.set(id, newFollow);
+    return newFollow;
+  }
+  
+  async unfollowPlayer(userId: number, playerId: number): Promise<boolean> {
+    const existingFollow = Array.from(this.follows.values()).find(
+      f => f.userId === userId && f.playerId === playerId
+    );
+    
+    if (!existingFollow) return false;
+    
+    return this.follows.delete(existingFollow.id);
+  }
+  
+  async getPlayerFollowers(playerId: number): Promise<Follow[]> {
+    return Array.from(this.follows.values()).filter(
+      f => f.playerId === playerId
+    );
+  }
+  
+  async getUserFollowing(userId: number): Promise<Follow[]> {
+    return Array.from(this.follows.values()).filter(
+      f => f.userId === userId
+    );
+  }
+  
+  async isFollowing(userId: number, playerId: number): Promise<boolean> {
+    return Array.from(this.follows.values()).some(
+      f => f.userId === userId && f.playerId === playerId
+    );
+  }
+  
+  // Engagement methods
+  async createEngagement(engagement: InsertEngagement): Promise<Engagement> {
+    const id = this.currentEngagementId++;
+    const newEngagement: Engagement = {
+      ...engagement,
+      id,
+      createdAt: new Date(),
+      // Ensure null value for optional content
+      content: engagement.content || null
+    };
+    
+    this.engagements.set(id, newEngagement);
+    return newEngagement;
+  }
+  
+  async getPlayerEngagements(playerId: number, limit: number = 10): Promise<Engagement[]> {
+    return Array.from(this.engagements.values())
+      .filter(e => e.playerId === playerId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+  
+  async getUserEngagements(userId: number, limit: number = 10): Promise<Engagement[]> {
+    return Array.from(this.engagements.values())
+      .filter(e => e.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+  
+  // Engagement Types methods
+  async getEngagementTypes(): Promise<EngagementType[]> {
+    return Array.from(this.engagementTypes.values());
+  }
+  
+  async getEngagementType(id: number): Promise<EngagementType | undefined> {
+    return this.engagementTypes.get(id);
+  }
+  
+  async createEngagementType(type: InsertEngagementType): Promise<EngagementType> {
+    const id = this.currentEngagementTypeId++;
+    const newType: EngagementType = {
+      ...type,
+      id,
+      createdAt: new Date(),
+      // Ensure required pointValue has a default
+      pointValue: type.pointValue ?? 0
+    };
+    
+    this.engagementTypes.set(id, newType);
+    return newType;
+  }
+  
+  // Badge methods
+  async getBadges(): Promise<Badge[]> {
+    return Array.from(this.badges.values());
+  }
+  
+  async getBadge(id: number): Promise<Badge | undefined> {
+    return this.badges.get(id);
+  }
+  
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const id = this.currentBadgeId++;
+    const newBadge: Badge = {
+      ...badge,
+      id,
+      createdAt: new Date()
+    };
+    
+    this.badges.set(id, newBadge);
+    return newBadge;
+  }
+  
+  // User Badge methods
+  async assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge> {
+    // Check if user already has this badge
+    const existingBadge = Array.from(this.userBadges.values()).find(
+      ub => ub.userId === userId && ub.badgeId === badgeId
+    );
+    
+    if (existingBadge) return existingBadge;
+    
+    // Assign badge to user
+    const id = this.currentUserBadgeId++;
+    const userBadge: UserBadge = {
+      id,
+      userId,
+      badgeId,
+      earnedAt: new Date()
+    };
+    
+    this.userBadges.set(id, userBadge);
+    return userBadge;
+  }
+  
+  async getUserBadges(userId: number): Promise<{ badge: Badge, userBadge: UserBadge }[]> {
+    const userBadges = Array.from(this.userBadges.values()).filter(
+      ub => ub.userId === userId
+    );
+    
+    const result: { badge: Badge, userBadge: UserBadge }[] = [];
+    
+    for (const userBadge of userBadges) {
+      const badge = this.badges.get(userBadge.badgeId);
+      if (badge) {
+        result.push({ badge, userBadge });
+      }
+    }
+    
+    return result;
   }
 }
 
@@ -536,6 +802,204 @@ export class DatabaseStorage implements IStorage {
         .insert(settings)
         .values({ key, value });
     }
+  }
+
+  // Fan Profile methods
+  async getFanProfile(userId: number): Promise<FanProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(fanProfiles)
+      .where(eq(fanProfiles.userId, userId));
+    return profile;
+  }
+
+  async createFanProfile(profile: InsertFanProfile): Promise<FanProfile> {
+    const [newProfile] = await db
+      .insert(fanProfiles)
+      .values(profile)
+      .returning();
+    return newProfile;
+  }
+
+  async updateFanProfile(userId: number, profile: Partial<InsertFanProfile>): Promise<FanProfile | undefined> {
+    const [updatedProfile] = await db
+      .update(fanProfiles)
+      .set({ ...profile, updatedAt: new Date() })
+      .where(eq(fanProfiles.userId, userId))
+      .returning();
+    return updatedProfile;
+  }
+
+  // Follow methods
+  async followPlayer(userId: number, playerId: number): Promise<Follow> {
+    // Check if already following
+    const existingFollow = await db
+      .select()
+      .from(follows)
+      .where(and(
+        eq(follows.userId, userId),
+        eq(follows.playerId, playerId)
+      ));
+
+    if (existingFollow.length > 0) {
+      return existingFollow[0];
+    }
+
+    // Create new follow
+    const [follow] = await db
+      .insert(follows)
+      .values({ userId, playerId })
+      .returning();
+    
+    return follow;
+  }
+
+  async unfollowPlayer(userId: number, playerId: number): Promise<boolean> {
+    await db
+      .delete(follows)
+      .where(and(
+        eq(follows.userId, userId),
+        eq(follows.playerId, playerId)
+      ));
+    
+    return true;
+  }
+
+  async getPlayerFollowers(playerId: number): Promise<Follow[]> {
+    return await db
+      .select()
+      .from(follows)
+      .where(eq(follows.playerId, playerId));
+  }
+
+  async getUserFollowing(userId: number): Promise<Follow[]> {
+    return await db
+      .select()
+      .from(follows)
+      .where(eq(follows.userId, userId));
+  }
+
+  async isFollowing(userId: number, playerId: number): Promise<boolean> {
+    const followEntries = await db
+      .select()
+      .from(follows)
+      .where(and(
+        eq(follows.userId, userId),
+        eq(follows.playerId, playerId)
+      ));
+    
+    return followEntries.length > 0;
+  }
+
+  // Engagement methods
+  async createEngagement(engagement: InsertEngagement): Promise<Engagement> {
+    const [newEngagement] = await db
+      .insert(engagements)
+      .values(engagement)
+      .returning();
+    
+    return newEngagement;
+  }
+
+  async getPlayerEngagements(playerId: number, limit: number = 10): Promise<Engagement[]> {
+    return await db
+      .select()
+      .from(engagements)
+      .where(eq(engagements.playerId, playerId))
+      .orderBy(desc(engagements.createdAt))
+      .limit(limit);
+  }
+
+  async getUserEngagements(userId: number, limit: number = 10): Promise<Engagement[]> {
+    return await db
+      .select()
+      .from(engagements)
+      .where(eq(engagements.userId, userId))
+      .orderBy(desc(engagements.createdAt))
+      .limit(limit);
+  }
+
+  // Engagement Types methods
+  async getEngagementTypes(): Promise<EngagementType[]> {
+    return await db.select().from(engagementTypes);
+  }
+
+  async getEngagementType(id: number): Promise<EngagementType | undefined> {
+    const [type] = await db
+      .select()
+      .from(engagementTypes)
+      .where(eq(engagementTypes.id, id));
+    
+    return type;
+  }
+
+  async createEngagementType(type: InsertEngagementType): Promise<EngagementType> {
+    const [newType] = await db
+      .insert(engagementTypes)
+      .values(type)
+      .returning();
+    
+    return newType;
+  }
+
+  // Badge methods
+  async getBadges(): Promise<Badge[]> {
+    return await db.select().from(badges);
+  }
+
+  async getBadge(id: number): Promise<Badge | undefined> {
+    const [badge] = await db
+      .select()
+      .from(badges)
+      .where(eq(badges.id, id));
+    
+    return badge;
+  }
+
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const [newBadge] = await db
+      .insert(badges)
+      .values(badge)
+      .returning();
+    
+    return newBadge;
+  }
+
+  // User Badge methods
+  async assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge> {
+    // Check if user already has this badge
+    const existingBadge = await db
+      .select()
+      .from(userBadges)
+      .where(and(
+        eq(userBadges.userId, userId),
+        eq(userBadges.badgeId, badgeId)
+      ));
+
+    if (existingBadge.length > 0) {
+      return existingBadge[0];
+    }
+
+    // Assign badge to user
+    const [userBadge] = await db
+      .insert(userBadges)
+      .values({ userId, badgeId })
+      .returning();
+    
+    return userBadge;
+  }
+
+  async getUserBadges(userId: number): Promise<{ badge: Badge, userBadge: UserBadge }[]> {
+    const userBadgesWithInfo = await db
+      .select({
+        badge: badges,
+        userBadge: userBadges
+      })
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId))
+      .innerJoin(badges, eq(userBadges.badgeId, badges.id));
+    
+    return userBadgesWithInfo;
   }
 }
 
