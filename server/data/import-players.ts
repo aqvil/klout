@@ -110,15 +110,5 @@ export async function importAllPlayers() {
   }
 }
 
-// Run the import if this script is executed directly
-if (require.main === module) {
-  importAllPlayers()
-    .then(result => {
-      console.log(`Import completed: ${result.imported} new players added out of ${result.total} total`);
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('Import failed:', error);
-      process.exit(1);
-    });
-}
+// For ESM modules we can't use the CommonJS require.main check
+// This would be used in a separate script if we want to run this directly

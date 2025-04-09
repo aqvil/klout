@@ -4,11 +4,14 @@ import { InsertPlayer, InsertPlayerStats } from '@shared/schema';
 import type { Request, Response } from 'express';
 import { FOOTBALL_API_KEY } from './settings';
 
-// API Constants
-const API_BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3';
+// API Constants 
+// We support both RapidAPI and direct API-Football endpoints
+const DIRECT_API_BASE_URL = 'https://v3.football.api-sports.io';
+const RAPIDAPI_BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3';
 
 // Get API Headers with the latest key from database or environment variable
-async function getApiHeaders() {
+// Helper function to get API headers and base URL for the current key
+async function getApiConfig() {
   // First try to get the key from the database
   let apiKey = await storage.getSetting(FOOTBALL_API_KEY);
   
@@ -30,10 +33,31 @@ async function getApiHeaders() {
     console.log(`Football API Key status: Set (starts with: ${apiKey.substring(0, 4)}...)`);
   }
 
-  return {
-    'X-RapidAPI-Key': apiKey || '',
-    'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
-  };
+  // Determine if this is a RapidAPI key (usually longer) or direct API-Football key
+  const isRapidApiKey = apiKey && apiKey.length > 40;
+  
+  const headers: Record<string, string> = {};
+  
+  if (isRapidApiKey) {
+    headers['X-RapidAPI-Key'] = apiKey || '';
+    headers['X-RapidAPI-Host'] = 'api-football-v1.p.rapidapi.com';
+    return {
+      baseUrl: RAPIDAPI_BASE_URL,
+      headers
+    };
+  } else {
+    headers['x-apisports-key'] = apiKey || '';
+    return {
+      baseUrl: DIRECT_API_BASE_URL,
+      headers
+    };
+  }
+};
+
+// Legacy function to maintain compatibility - returns only headers
+async function getApiHeaders() {
+  const config = await getApiConfig();
+  return config.headers;
 };
 
 // Test the API connection
@@ -41,13 +65,17 @@ export async function testApiConnection(req: Request, res: Response) {
   try {
     console.log('Testing Football API connection...');
     
-    // Get the latest API headers with current key
-    const headers = await getApiHeaders();
+    // Get the API configuration with headers and base URL
+    const config = await getApiConfig();
+    
+    // Log which endpoint we're using
+    const isRapidApi = config.baseUrl === RAPIDAPI_BASE_URL;
+    console.log(`Using API endpoint: ${config.baseUrl} (${isRapidApi ? 'RapidAPI' : 'Direct API-Football'})`);
     
     // Make a simple API call to test the connection
-    const response = await fetch(`${API_BASE_URL}/leagues`, {
+    const response = await fetch(`${config.baseUrl}/leagues`, {
       method: 'GET',
-      headers
+      headers: config.headers
     });
 
     // Log the response status for debugging
@@ -179,11 +207,11 @@ interface SocialMediaInfo {
 // Function to fetch all teams for a league
 export async function fetchTeamsInLeague(leagueId: number, season: number = 2023): Promise<number[]> {
   try {
-    const headers = await getApiHeaders();
+    const config = await getApiConfig();
     
-    const response = await fetch(`${API_BASE_URL}/teams?league=${leagueId}&season=${season}`, {
+    const response = await fetch(`${config.baseUrl}/teams?league=${leagueId}&season=${season}`, {
       method: 'GET',
-      headers
+      headers: config.headers
     });
 
     if (!response.ok) {
@@ -202,11 +230,11 @@ export async function fetchTeamsInLeague(leagueId: number, season: number = 2023
 // Function to fetch players for a team
 export async function fetchPlayersInTeam(teamId: number, season: number = 2023): Promise<ApiPlayer[]> {
   try {
-    const headers = await getApiHeaders();
+    const config = await getApiConfig();
     
-    const response = await fetch(`${API_BASE_URL}/players?team=${teamId}&season=${season}`, {
+    const response = await fetch(`${config.baseUrl}/players?team=${teamId}&season=${season}`, {
       method: 'GET',
-      headers
+      headers: config.headers
     });
 
     if (!response.ok) {
@@ -224,11 +252,11 @@ export async function fetchPlayersInTeam(teamId: number, season: number = 2023):
 // Function to fetch player statistics
 export async function fetchPlayerStatistics(playerId: number, season: number = 2023): Promise<ApiPlayer | null> {
   try {
-    const headers = await getApiHeaders();
+    const config = await getApiConfig();
     
-    const response = await fetch(`${API_BASE_URL}/players?id=${playerId}&season=${season}`, {
+    const response = await fetch(`${config.baseUrl}/players?id=${playerId}&season=${season}`, {
       method: 'GET', 
-      headers
+      headers: config.headers
     });
 
     if (!response.ok) {
