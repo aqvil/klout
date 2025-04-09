@@ -34,8 +34,20 @@ export function useFollow(playerId: number) {
   // Follow a player
   const followMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/follows/${playerId}`);
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", `/api/follows/${playerId}`);
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return await res.json();
+        } else {
+          // Handle non-JSON response
+          const text = await res.text();
+          throw new Error(`Server returned non-JSON response: ${text}`);
+        }
+      } catch (error) {
+        console.error("Follow error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -58,8 +70,30 @@ export function useFollow(playerId: number) {
   // Unfollow a player
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("DELETE", `/api/follows/${playerId}`);
-      return { success: true };
+      try {
+        const res = await apiRequest("DELETE", `/api/follows/${playerId}`);
+        // For DELETE, we often don't get a response body (204 No Content)
+        if (res.status === 204) {
+          return { success: true };
+        }
+        
+        // If we do get a body, check if it's JSON
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return await res.json();
+        } else {
+          // Return success for other 2xx status codes
+          if (res.ok) {
+            return { success: true };
+          }
+          // Otherwise throw error
+          const text = await res.text();
+          throw new Error(`Server error: ${text}`);
+        }
+      } catch (error) {
+        console.error("Unfollow error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate and refetch
