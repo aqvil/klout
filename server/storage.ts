@@ -865,6 +865,8 @@ export class DatabaseStorage implements IStorage {
 
   // Follow methods
   async followPlayer(userId: number, playerId: number): Promise<Follow> {
+    console.log(`[FOLLOW] Attempting to follow playerId=${playerId} for userId=${userId}`);
+    
     // Check if already following
     const existingFollow = await db
       .select()
@@ -875,27 +877,43 @@ export class DatabaseStorage implements IStorage {
       ));
 
     if (existingFollow.length > 0) {
+      console.log(`[FOLLOW] Already following, returning existing follow`);
       return existingFollow[0];
     }
 
-    // Create new follow
-    const [follow] = await db
-      .insert(follows)
-      .values({ userId, playerId })
-      .returning();
-    
-    return follow;
+    try {
+      // Create new follow
+      console.log(`[FOLLOW] Creating new follow relation`);
+      const [follow] = await db
+        .insert(follows)
+        .values({ userId, playerId })
+        .returning();
+      
+      console.log(`[FOLLOW] Successfully created follow relation: ${JSON.stringify(follow)}`);
+      return follow;
+    } catch (error) {
+      console.error(`[FOLLOW ERROR] Failed to create follow:`, error);
+      throw error;
+    }
   }
 
   async unfollowPlayer(userId: number, playerId: number): Promise<boolean> {
-    await db
-      .delete(follows)
-      .where(and(
-        eq(follows.userId, userId),
-        eq(follows.playerId, playerId)
-      ));
+    console.log(`[UNFOLLOW] Attempting to unfollow playerId=${playerId} for userId=${userId}`);
     
-    return true;
+    try {
+      await db
+        .delete(follows)
+        .where(and(
+          eq(follows.userId, userId),
+          eq(follows.playerId, playerId)
+        ));
+      
+      console.log(`[UNFOLLOW] Successfully unfollowed`);
+      return true;
+    } catch (error) {
+      console.error(`[UNFOLLOW ERROR] Failed to unfollow:`, error);
+      throw error;
+    }
   }
 
   async getPlayerFollowers(playerId: number): Promise<Follow[]> {
