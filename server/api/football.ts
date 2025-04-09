@@ -58,6 +58,12 @@ async function getApiConfig() {
   };
 };
 
+// Helper function to introduce a delay between API calls to avoid rate limits
+async function apiDelay(ms: number = 2000): Promise<void> {
+  console.log(`Adding delay of ${ms}ms to avoid API rate limits...`);
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 // Legacy function to maintain compatibility - returns only headers
 async function getApiHeaders() {
   const config = await getApiConfig();
@@ -294,6 +300,9 @@ interface SocialMediaInfo {
 // Function to fetch all teams for a league
 export async function fetchTeamsInLeague(leagueId: number, season: number = 2023): Promise<number[]> {
   try {
+    // Delay before API call to avoid rate limits
+    await apiDelay(3000);
+    
     const config = await getApiConfig();
     
     // Log the actual request URL for debugging
@@ -308,14 +317,48 @@ export async function fetchTeamsInLeague(leagueId: number, season: number = 2023
     // Log response status
     console.log(`API response status for teams: ${response.status}`);
 
+    // Handle rate limiting
+    if (response.status === 429) {
+      console.log('Rate limit exceeded when fetching teams. Waiting 10 seconds before retrying...');
+      await apiDelay(10000);
+      
+      // Try again
+      console.log(`Retrying teams fetch for league ${leagueId}...`);
+      const retryResponse = await fetch(url, {
+        method: 'GET',
+        headers: config.headers
+      });
+      
+      if (!retryResponse.ok) {
+        console.log(`Retry also failed with status ${retryResponse.status}`);
+        return [];
+      }
+      
+      const retryData = await retryResponse.json() as any;
+      if (!retryData.response || !Array.isArray(retryData.response) || retryData.response.length === 0) {
+        console.log(`No teams found for league ${leagueId} after retry`);
+        return [];
+      }
+      
+      console.log(`Successfully fetched teams for league ${leagueId} after retry`);
+      const teams = retryData.response.map((team: any) => team.team.id);
+      return teams;
+    }
+
     if (!response.ok) {
       // Try to get error details
       const errorText = await response.text();
       console.error(`API error response: ${errorText.substring(0, 200)}`);
-      throw new Error(`API responded with status: ${response.status}`);
+      return []; // Return empty array instead of throwing to allow processing to continue
     }
 
     const data = await response.json() as any;
+    
+    // Check for rate limit errors
+    if (data.errors && data.errors.rateLimit) {
+      console.log(`Rate limit error: ${data.errors.rateLimit}`);
+      return [];
+    }
     
     // Check if we have results
     if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
@@ -338,6 +381,9 @@ export async function fetchTeamsInLeague(leagueId: number, season: number = 2023
 // Function to fetch players for a team
 export async function fetchPlayersInTeam(teamId: number, season: number = 2023): Promise<ApiPlayer[]> {
   try {
+    // Add delay to prevent rate limiting
+    await apiDelay(3000);
+    
     const config = await getApiConfig();
     
     const url = `${config.baseUrl}/players?team=${teamId}&season=${season}`;
@@ -350,13 +396,46 @@ export async function fetchPlayersInTeam(teamId: number, season: number = 2023):
 
     console.log(`API response status for players: ${response.status}`);
 
+    // Handle rate limiting
+    if (response.status === 429) {
+      console.log('Rate limit exceeded when fetching players. Waiting 10 seconds before retrying...');
+      await apiDelay(10000);
+      
+      // Retry the request
+      console.log(`Retrying players fetch for team ${teamId}...`);
+      const retryResponse = await fetch(url, {
+        method: 'GET',
+        headers: config.headers
+      });
+      
+      if (!retryResponse.ok) {
+        console.log(`Retry also failed with status ${retryResponse.status}`);
+        return [];
+      }
+      
+      const retryData = await retryResponse.json() as any;
+      if (!retryData.response || !Array.isArray(retryData.response) || retryData.response.length === 0) {
+        console.log(`No players found for team ${teamId} after retry`);
+        return [];
+      }
+      
+      console.log(`Successfully fetched players for team ${teamId} after retry`);
+      return retryData.response;
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error response: ${errorText.substring(0, 200)}`);
-      throw new Error(`API responded with status: ${response.status}`);
+      return []; // Return empty array instead of throwing to allow processing to continue
     }
 
     const data = await response.json() as any;
+    
+    // Check for rate limit errors
+    if (data.errors && data.errors.rateLimit) {
+      console.log(`Rate limit error: ${data.errors.rateLimit}`);
+      return [];
+    }
     
     // Check if we have results
     if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
@@ -390,6 +469,9 @@ export async function fetchPlayersInTeam(teamId: number, season: number = 2023):
 // Function to fetch player statistics
 export async function fetchPlayerStatistics(playerId: number, season: number = 2023): Promise<ApiPlayer | null> {
   try {
+    // Add a delay before making the request to avoid rate limits
+    await apiDelay(3000); // 3 seconds delay
+    
     const config = await getApiConfig();
     
     const url = `${config.baseUrl}/players?id=${playerId}&season=${season}`;
@@ -402,10 +484,38 @@ export async function fetchPlayerStatistics(playerId: number, season: number = 2
 
     console.log(`API response status for player stats: ${response.status}`);
 
+    // Handle rate limiting explicitly
+    if (response.status === 429) {
+      // If rate limited, wait longer and try again (once)
+      console.log('API rate limit hit, waiting 10 seconds before retrying...');
+      await apiDelay(10000); // 10 seconds delay
+      
+      // Make second attempt
+      console.log(`Retrying fetch for player ${playerId}...`);
+      const retryResponse = await fetch(url, {
+        method: 'GET',
+        headers: config.headers
+      });
+      
+      if (!retryResponse.ok) {
+        console.log(`Retry also failed with status ${retryResponse.status}`);
+        return null;
+      }
+      
+      const retryData = await retryResponse.json() as any;
+      if (!retryData.response || !Array.isArray(retryData.response) || retryData.response.length === 0) {
+        console.log(`No stats found for player ${playerId} after retry`);
+        return null;
+      }
+      
+      console.log(`Successfully fetched player ${playerId} data after retry`);
+      return retryData.response[0] || null;
+    }
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API error response: ${errorText.substring(0, 200)}`);
-      throw new Error(`API responded with status: ${response.status}`);
+      return null; // Return null instead of throwing to allow processing to continue
     }
 
     const data = await response.json() as any;
@@ -414,6 +524,12 @@ export async function fetchPlayerStatistics(playerId: number, season: number = 2
     if (!data.response || !Array.isArray(data.response) || data.response.length === 0) {
       console.log(`No stats found for player ${playerId}, season ${season}`);
       console.log(`API response: ${JSON.stringify(data).substring(0, 300)}...`);
+      return null;
+    }
+    
+    // Check for rate limit errors in the response
+    if (data.errors && data.errors.rateLimit) {
+      console.log(`Rate limit error: ${data.errors.rateLimit}`);
       return null;
     }
     
@@ -431,6 +547,25 @@ export async function fetchPlayerStatistics(playerId: number, season: number = 2
 async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
   // This function would normally call a social media analytics API
   // For now, we'll use an algorithm based on player rating, league, and position
+  
+  // Handle nested player structure - the API response format can vary
+  const playerName = player.player?.name || player.name;
+  const playerPos = player.player?.position || player.position;
+  const playerNationality = player.player?.nationality || player.nationality;
+  
+  // Safety check - if no player name is available, use a default
+  if (!playerName) {
+    console.log('Warning: Player name is missing in the data. Using default values for social media.');
+    return {
+      instagramFollowers: 500000,
+      twitterFollowers: 300000,
+      facebookFollowers: 200000,
+      engagementRate: 2.5,
+      instagramUrl: 'https://instagram.com/unknown',
+      twitterUrl: 'https://twitter.com/unknown',
+      facebookUrl: 'https://facebook.com/unknown'
+    };
+  }
   
   // Base follower counts by league tier (approximate millions of followers)
   const leagueTiers: Record<number, number> = {
@@ -455,7 +590,6 @@ async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
   };
   
   // Rating impact (players with higher ratings get more followers)
-  // Convert rating to number if it's a string (API sometimes returns strings)
   const ratingValue = typeof player.rating === 'string' ? 
     parseFloat(player.rating || '0') : 
     (player.rating || 0);
@@ -493,7 +627,7 @@ async function getSocialMediaInfo(player: ApiPlayer): Promise<SocialMediaInfo> {
   
   // Generate appropriate social media URLs - normalize player names for URLs
   // Remove special characters, spaces, and accents for better URL formatting
-  const formattedName = player.name.toLowerCase()
+  const formattedName = playerName.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
     .replace(/[^\w\s]/gi, '') // Remove special characters
     .replace(/\s+/g, ''); // Remove spaces
@@ -618,6 +752,12 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
         
         // Get or generate social media info
         const socialMedia = await getSocialMediaInfo(playerDetails);
+        
+        // Check if we have a valid player name, which is required
+        if (!playerDetails.name) {
+          console.log(`Missing name for player ID ${player.id}, skipping`);
+          continue;
+        }
         
         // Format the player data for our database
         const playerData: InsertPlayer = {

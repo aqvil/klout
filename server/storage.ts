@@ -631,6 +631,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
+    // Validate the player has a name before processing
+    if (!player.name) {
+      console.error("Error: Attempted to create player with undefined name");
+      throw new Error("Player name is required");
+    }
+    
     // Generate slug from player name if not provided
     if (!player.slug) {
       player.slug = player.name.toLowerCase().replace(/\s+/g, '-');

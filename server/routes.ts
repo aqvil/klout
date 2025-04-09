@@ -12,7 +12,8 @@ import {
   updatePlayerInfluenceScores,
   calculatePlayerScores,
   testApiConnection,
-  fetchTeamsInLeague
+  fetchTeamsInLeague,
+  fetchPlayersInTeam
 } from "./api/football";
 import {
   getSetting,
@@ -635,6 +636,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public test endpoint for players in a specific team (for debugging without auth)
+  app.get("/api/public/team-players/:teamId", async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      if (isNaN(teamId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid team ID'
+        });
+      }
+      
+      console.log(`Fetching players for team ${teamId} with public endpoint`);
+      
+      // Call the API function to fetch players for the given team
+      const players = await fetchPlayersInTeam(teamId, 2023);
+      
+      if (players.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `No players found for team ${teamId} in season 2023`
+        });
+      }
+      
+      // Simplify player data for the response to avoid large payloads
+      const simplifiedPlayers = players.map((player: any) => {
+        // Handle both data structures (direct player or nested player)
+        const playerData = player.player || player;
+        return {
+          id: playerData.id,
+          name: playerData.name,
+          position: playerData.position || 'Unknown',
+          nationality: playerData.nationality || 'Unknown',
+          photo: playerData.photo
+        };
+      });
+      
+      res.json({
+        success: true,
+        message: `Found ${players.length} players in team ${teamId}`,
+        players: simplifiedPlayers
+      });
+    } catch (error) {
+      console.error(`Error fetching players for team:`, error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  });
+  
   // Endpoint to fetch teams from a league - admin access
   app.get("/api/admin/football-teams", requireAdmin, async (req, res) => {
     try {
@@ -766,7 +817,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ 
         message: `Slug population process completed. ${result.updated} players updated out of ${result.total} total players.`,
-        success: result.success,
         ...result
       });
     } catch (error) {
