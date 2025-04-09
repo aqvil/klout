@@ -79,6 +79,12 @@ export default function PlayersPage() {
                     src={player.profileImg}
                     alt={player.name}
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      // Fallback to a placeholder if the image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null; // Prevent infinite loop
+                      target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=300&background=random`;
+                    }}
                   />
                 </div>
                 <CardContent className="p-4">

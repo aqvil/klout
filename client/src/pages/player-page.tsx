@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { FaTwitter, FaInstagram, FaFacebook } from "react-icons/fa";
 import { useEffect, useRef } from "react";
+import { PlayerImage } from "@/components/ui/player-image";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
@@ -147,10 +148,11 @@ export default function PlayerPage() {
               ) : (
                 <>
                   <div className="w-32 h-32 rounded-full overflow-hidden mb-4">
-                    <img 
-                      src={playerDetails?.player.profileImg} 
-                      alt={playerDetails?.player.name} 
+                    <PlayerImage
+                      src={playerDetails?.player.profileImg || ''}
+                      alt={playerDetails?.player.name || ''}
                       className="w-full h-full object-cover"
+                      size={256}
                     />
                   </div>
                   <h3 className="text-xl font-bold text-neutral-800 mb-1">{playerDetails?.player.name}</h3>
