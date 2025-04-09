@@ -469,6 +469,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test endpoint for debugging slug issues
+  app.get("/api/test-player-slug/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      console.log(`[TEST] Testing slug lookup for: ${slug}`);
+      
+      // Get all players and find the one matching the slug
+      const allPlayers = await storage.getAllPlayers();
+      console.log(`[TEST] Found ${allPlayers.length} players, searching for match with slug: ${slug}`);
+      
+      // Debug: Print first 5 players
+      allPlayers.slice(0, 5).forEach(p => {
+        const playerSlug = p.name.toLowerCase().replace(/\s+/g, '-');
+        console.log(`[TEST] Player: ${p.name}, Slug: ${playerSlug}`);
+      });
+      
+      const matchedPlayer = allPlayers.find(p => {
+        const playerSlug = p.name.toLowerCase().replace(/\s+/g, '-');
+        return playerSlug === slug.toLowerCase();
+      });
+      
+      if (matchedPlayer) {
+        console.log(`[TEST] Found matching player: ${matchedPlayer.name} (ID: ${matchedPlayer.id})`);
+        res.json({ 
+          success: true, 
+          message: `Found player: ${matchedPlayer.name}`, 
+          player: matchedPlayer 
+        });
+      } else {
+        console.log(`[TEST] No player found matching slug: ${slug}`);
+        res.status(404).json({ 
+          success: false, 
+          message: `No player found matching slug: ${slug}`,
+          allPlayers: allPlayers.map(p => ({ 
+            id: p.id, 
+            name: p.name, 
+            slug: p.name.toLowerCase().replace(/\s+/g, '-')
+          })).slice(0, 10)
+        });
+      }
+    } catch (error) {
+      console.error(`[TEST ERROR] Failed to test slug:`, error);
+      res.status(500).json({ message: "Test failed" });
+    }
+  });
+
   // Get a single player with stats and scores - supports both ID and slug
   app.get("/api/player-details/:idOrSlug", async (req, res) => {
     try {
