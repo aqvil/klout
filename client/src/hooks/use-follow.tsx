@@ -4,17 +4,24 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Follow } from "@shared/schema";
 
-export const useFollow = (playerId: number) => {
+interface FollowResponse {
+  isFollowing: boolean;
+  playerId?: number;
+}
+
+export const useFollow = (playerIdOrSlug: number | string) => {
+  // Convert to string for consistency in query keys
+  const playerKey = playerIdOrSlug.toString();
   const { toast } = useToast();
   const { user } = useAuth();
   
   // Check if the user is following this player
   const {
-    data: isFollowing,
+    data: followResponse,
     isLoading: isFollowingLoading,
-  } = useQuery<boolean>({
-    queryKey: ["/api/follows/check", playerId],
-    enabled: !!user && !!playerId,
+  } = useQuery<FollowResponse>({
+    queryKey: ["/api/follows/check", playerKey],
+    enabled: !!user && !!playerIdOrSlug,
     retry: false,
   });
   
@@ -23,18 +30,18 @@ export const useFollow = (playerId: number) => {
     data: followers,
     isLoading: isFollowersLoading,
   } = useQuery<Follow[]>({
-    queryKey: ["/api/follows/player", playerId],
-    enabled: !!playerId,
+    queryKey: ["/api/follows/player", playerKey],
+    enabled: !!playerIdOrSlug,
   });
   
   const followMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/follows", { playerId });
+      const res = await apiRequest("POST", `/api/follow/${playerKey}`);
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/check", playerId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/player", playerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/follows/check", playerKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/follows/player", playerKey] });
       queryClient.invalidateQueries({ queryKey: ["/api/follows/user"] });
       toast({
         title: "Success",
@@ -52,12 +59,12 @@ export const useFollow = (playerId: number) => {
   
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/follows/${playerId}`);
-      return await res.json();
+      const res = await apiRequest("DELETE", `/api/follow/${playerKey}`);
+      return res.status === 204 ? {} : await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/check", playerId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/player", playerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/follows/check", playerKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/follows/player", playerKey] });
       queryClient.invalidateQueries({ queryKey: ["/api/follows/user"] });
       toast({
         title: "Success",
@@ -74,9 +81,10 @@ export const useFollow = (playerId: number) => {
   });
   
   return {
-    isFollowing: isFollowing || false,
+    isFollowing: followResponse?.isFollowing || false,
     isFollowingLoading: isFollowingLoading || followMutation.isPending || unfollowMutation.isPending,
     followerCount: followers?.length || 0,
+    playerId: followResponse?.playerId,
     follow: followMutation.mutate,
     unfollow: unfollowMutation.mutate,
   };

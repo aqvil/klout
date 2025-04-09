@@ -171,10 +171,10 @@ export default function ProfilePage() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {following.map((follow: Follow) => (
+                    {following.map((follow: Follow & { playerName?: string | null }) => (
                       <div key={follow.id} className="flex items-center justify-between">
-                        <Link to={`/player/${follow.playerId}`} className="hover:underline">
-                          {follow.player?.name || `Player ${follow.playerId}`}
+                        <Link to={`/player/${follow.playerName ? follow.playerName.toLowerCase().replace(/\s+/g, '-') : follow.playerId}`} className="hover:underline">
+                          {follow.playerName || `Player ${follow.playerId}`}
                         </Link>
                         <Badge variant="secondary">
                           {new Date(follow.createdAt).toLocaleDateString()}

@@ -17,7 +17,8 @@ export const useFanProfile = () => {
     enabled: !!user,
     retry: false,
     // Handle 404 errors silently
-    gcTime: 0
+    gcTime: 0,
+    staleTime: 30000
   });
 
   const createProfileMutation = useMutation({

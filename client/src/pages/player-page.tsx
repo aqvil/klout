@@ -30,17 +30,25 @@ import {
 } from 'recharts';
 
 export default function PlayerPage() {
-  const { id } = useParams<{ id: string }>();
-  const numberId = Number(id);
+  const { slug } = useParams<{ slug: string }>();
+  const numberId = Number(slug);
+  const isIdFormat = !isNaN(numberId);
 
-  const { data: playerDetails, isLoading: isLoadingPlayer } = useQuery<PlayerWithStats>({
-    queryKey: [`/api/player-details/${id}`],
-    enabled: !isNaN(numberId),
+  const { 
+    data: playerDetails, 
+    isLoading: isLoadingPlayer,
+    error: playerError,
+    isError: isPlayerError 
+  } = useQuery<PlayerWithStats>({
+    queryKey: [`/api/player-details/${slug}`],
   });
   
+  // Once we have player details, use the actual ID for getting scores
+  const playerId = playerDetails?.player?.id;
+  
   const { data: scoreHistory, isLoading: isLoadingScores } = useQuery<Score[]>({
-    queryKey: [`/api/players/${id}/scores`],
-    enabled: !isNaN(numberId),
+    queryKey: [`/api/players/${playerId}/scores`],
+    enabled: !!playerId,
   });
   
   const isLoading = isLoadingPlayer || isLoadingScores;
@@ -68,12 +76,15 @@ export default function PlayerPage() {
     return count.toString();
   };
   
-  if (isNaN(numberId)) {
+  // Handle player not found or error situations
+  if (isPlayerError) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600">Invalid Player ID</h2>
-          <p className="mt-2 text-gray-600">The player ID provided is not valid.</p>
+          <h2 className="text-2xl font-bold text-red-600">Player Not Found</h2>
+          <p className="mt-2 text-gray-600">
+            The player you're looking for doesn't exist or couldn't be loaded.
+          </p>
           <Link href="/rankings">
             <Button className="mt-4">Go to Rankings</Button>
           </Link>

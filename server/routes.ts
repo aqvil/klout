@@ -431,15 +431,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get a single player with stats and scores
-  app.get("/api/player-details/:id", async (req, res) => {
+  // Get a single player with stats and scores - supports both ID and slug
+  app.get("/api/player-details/:idOrSlug", async (req, res) => {
     try {
-      const playerId = parseInt(req.params.id);
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      const idOrSlug = req.params.idOrSlug;
+      let playerWithDetails = null;
+      
+      // Check if the parameter is a numeric ID
+      const playerId = parseInt(idOrSlug);
+      
+      if (!isNaN(playerId)) {
+        // If it's a numeric ID, fetch by ID
+        playerWithDetails = await storage.getPlayerWithStatsAndScores(playerId);
+      } else {
+        // If it's a slug, convert back to a name and search
+        const nameFromSlug = idOrSlug.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        
+        // Get all players and find the one matching the name
+        const allPlayers = await storage.getAllPlayers();
+        const matchedPlayer = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (matchedPlayer) {
+          playerWithDetails = await storage.getPlayerWithStatsAndScores(matchedPlayer.id);
+        }
       }
       
-      const playerWithDetails = await storage.getPlayerWithStatsAndScores(playerId);
       if (!playerWithDetails) {
         return res.status(404).json({ message: "Player not found or missing details" });
       }
@@ -688,36 +708,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Follow endpoints
-  app.post("/api/follow/:playerId", requireAuth, async (req, res) => {
+  // Follow endpoints - supporting both ID and slug
+  app.post("/api/follow/:idOrSlug", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const playerId = parseInt(req.params.playerId);
+      const idOrSlug = req.params.idOrSlug;
+      let playerId: number;
+      let player;
       
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      // Check if the parameter is a numeric ID
+      const numericId = parseInt(idOrSlug);
+      
+      if (!isNaN(numericId)) {
+        // If it's a numeric ID, fetch by ID
+        playerId = numericId;
+        player = await storage.getPlayer(playerId);
+      } else {
+        // If it's a slug, convert back to a name and search
+        const nameFromSlug = idOrSlug.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        
+        // Get all players and find the one matching the name
+        const allPlayers = await storage.getAllPlayers();
+        player = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (player) {
+          playerId = player.id;
+        } else {
+          return res.status(404).json({ message: "Player not found" });
+        }
       }
       
-      // Check if player exists
-      const player = await storage.getPlayer(playerId);
       if (!player) {
         return res.status(404).json({ message: "Player not found" });
       }
       
       const follow = await storage.followPlayer(userId, playerId);
-      res.status(201).json(follow);
+      
+      // Add player name to make it more useful for frontend
+      const enhancedFollow = {
+        ...follow,
+        playerName: player.name
+      };
+      
+      res.status(201).json(enhancedFollow);
     } catch (error) {
       res.status(500).json({ message: "Failed to follow player" });
     }
   });
 
-  app.delete("/api/follow/:playerId", requireAuth, async (req, res) => {
+  app.delete("/api/follow/:idOrSlug", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const playerId = parseInt(req.params.playerId);
+      const idOrSlug = req.params.idOrSlug;
+      let playerId: number;
       
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      // Check if the parameter is a numeric ID
+      const numericId = parseInt(idOrSlug);
+      
+      if (!isNaN(numericId)) {
+        // If it's a numeric ID, use directly
+        playerId = numericId;
+      } else {
+        // If it's a slug, convert back to a name and search
+        const nameFromSlug = idOrSlug.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        
+        // Get all players and find the one matching the name
+        const allPlayers = await storage.getAllPlayers();
+        const player = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (player) {
+          playerId = player.id;
+        } else {
+          return res.status(404).json({ message: "Player not found" });
+        }
       }
       
       const success = await storage.unfollowPlayer(userId, playerId);
@@ -751,23 +822,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const following = await storage.getUserFollowing(userId);
-      res.json(following);
+      
+      // Enhance the following data with player names for better display
+      const enhancedFollowing = await Promise.all(following.map(async (follow) => {
+        try {
+          const player = await storage.getPlayer(follow.playerId);
+          return {
+            ...follow,
+            playerName: player?.name || null
+          };
+        } catch (err) {
+          console.error(`Error fetching player ${follow.playerId}:`, err);
+          return {
+            ...follow,
+            playerName: null
+          };
+        }
+      }));
+      
+      res.json(enhancedFollowing);
     } catch (error) {
       res.status(500).json({ message: "Failed to get user following" });
     }
   });
 
-  app.get("/api/follows/check/:playerId", requireAuth, async (req, res) => {
+  app.get("/api/follows/check/:idOrSlug", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const playerId = parseInt(req.params.playerId);
+      const idOrSlug = req.params.idOrSlug;
+      let playerId: number;
       
-      if (isNaN(playerId)) {
-        return res.status(400).json({ message: "Invalid player ID" });
+      // Check if the parameter is a numeric ID
+      const numericId = parseInt(idOrSlug);
+      
+      if (!isNaN(numericId)) {
+        // If it's a numeric ID, use directly
+        playerId = numericId;
+      } else {
+        // If it's a slug, convert back to a name and search
+        const nameFromSlug = idOrSlug.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        
+        // Get all players and find the one matching the name
+        const allPlayers = await storage.getAllPlayers();
+        const player = allPlayers.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '-') === idOrSlug.toLowerCase()
+        );
+        
+        if (player) {
+          playerId = player.id;
+        } else {
+          return res.status(404).json({ message: "Player not found" });
+        }
       }
       
       const isFollowing = await storage.isFollowing(userId, playerId);
-      res.json({ isFollowing });
+      res.json({ isFollowing, playerId });
     } catch (error) {
       res.status(500).json({ message: "Failed to check follow status" });
     }

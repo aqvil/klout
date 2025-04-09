@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User, User as SelectUser } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -108,19 +108,19 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: "Invalid credentials" });
+      if (!user) return res.status(401).json({ message: info?.message || "Invalid credentials" });
       
-      req.login(user, (err) => {
-        if (err) return next(err);
+      req.login(user, (loginErr: Error) => {
+        if (loginErr) return next(loginErr);
         return res.status(200).json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
+    req.logout((err: Error) => {
       if (err) return next(err);
       res.sendStatus(200);
     });

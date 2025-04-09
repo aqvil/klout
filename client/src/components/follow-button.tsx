@@ -7,14 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FollowButtonProps {
-  playerId: number;
+  playerIdOrSlug: number | string;
   showCount?: boolean;
   className?: string;
   variant?: "default" | "secondary" | "outline" | "destructive" | "ghost" | "link";
 }
 
 export function FollowButton({ 
-  playerId, 
+  playerIdOrSlug, 
   showCount = true, 
   className = "",
   variant = "default"
@@ -26,7 +26,7 @@ export function FollowButton({
     follow, 
     unfollow, 
     isFollowingLoading 
-  } = useFollow(playerId);
+  } = useFollow(playerIdOrSlug);
 
   const handleClick = () => {
     if (isFollowing) {
