@@ -21,9 +21,19 @@ export default function HomePage() {
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedTimeframe, setSelectedTimeframe] = useState("week");
   
-  // Fetch top ranked players
-  const { data: rankings, isLoading: isLoadingRankings } = useQuery<PlayerWithStats[]>({
-    queryKey: ["/api/rankings", { limit: 5 }],
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Fetch top ranked players with pagination
+  const { data: rankingsData, isLoading: isLoadingRankings } = useQuery<{
+    players: PlayerWithStats[],
+    pagination: {
+      currentPage: number,
+      totalPages: number,
+      totalPlayers: number,
+      playersPerPage: number
+    }
+  }>({
+    queryKey: ["/api/rankings", { page: currentPage, perPage: 30 }],
   });
   
   // Fetch top performers by category
@@ -191,7 +201,7 @@ export default function HomePage() {
               </thead>
               <tbody className="bg-white divide-y divide-neutral-200">
                 {isLoadingRankings ? (
-                  Array(5).fill(0).map((_, index) => (
+                  Array(30).fill(0).map((_, index) => (
                     <tr key={index} className="hover:bg-neutral-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-700">
                         <Skeleton className="h-6 w-6" />
@@ -223,11 +233,13 @@ export default function HomePage() {
                     </tr>
                   ))
                 ) : (
-                  rankings?.map((item, index) => (
+                  rankingsData?.players.map((item, index) => (
                     <tr key={item.player.id} className="hover:bg-neutral-50 cursor-pointer">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-700">{index + 1}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-700">
+                        {((rankingsData.pagination.currentPage - 1) * rankingsData.pagination.playersPerPage) + index + 1}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link href={`/player/${item.player.slug || item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 
@@ -270,22 +282,79 @@ export default function HomePage() {
           </div>
           <div className="bg-white px-6 py-4 border-t border-neutral-200 flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm">Next</Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={!rankingsData || rankingsData.pagination.currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={!rankingsData || rankingsData.pagination.currentPage >= rankingsData.pagination.totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(rankingsData?.pagination.totalPages || 1, prev + 1))}
+              >
+                Next
+              </Button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-neutral-700">
-                  Showing <span className="font-medium">1</span> to <span className="font-medium">{rankings?.length || 0}</span> of <span className="font-medium">{playerCount || 0}</span> players
+                  {rankingsData ? (
+                    <>
+                      Showing <span className="font-medium">{((rankingsData.pagination.currentPage - 1) * rankingsData.pagination.playersPerPage) + 1}</span> to <span className="font-medium">{Math.min(rankingsData.pagination.currentPage * rankingsData.pagination.playersPerPage, rankingsData.pagination.totalPlayers)}</span> of <span className="font-medium">{rankingsData.pagination.totalPlayers}</span> players
+                    </>
+                  ) : (
+                    <span>Loading players...</span>
+                  )}
                 </p>
               </div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <Link href="/rankings">
-                    <Button variant="outline" size="sm" className="relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium">
-                      View All Rankings
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="rounded-l-md"
+                    disabled={!rankingsData || rankingsData.pagination.currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    First
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={!rankingsData || rankingsData.pagination.currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  >
+                    Previous
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  {rankingsData && (
+                    <div className="px-4 py-2 border border-neutral-300 bg-white text-sm font-medium">
+                      Page {rankingsData.pagination.currentPage} of {rankingsData.pagination.totalPages}
+                    </div>
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={!rankingsData || rankingsData.pagination.currentPage >= rankingsData.pagination.totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(rankingsData?.pagination.totalPages || 1, prev + 1))}
+                  >
+                    Next
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="rounded-r-md"
+                    disabled={!rankingsData || rankingsData.pagination.currentPage >= rankingsData.pagination.totalPages}
+                    onClick={() => rankingsData && setCurrentPage(rankingsData.pagination.totalPages)}
+                  >
+                    Last
+                  </Button>
                 </nav>
               </div>
             </div>
@@ -507,63 +576,63 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="md:w-1/2 relative" style={{ minHeight: "320px" }}>
-              {rankings && rankings.length > 0 ? (
+              {rankingsData && rankingsData.players.length > 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 p-8">
                   <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-full max-w-sm">
                     <div className="flex items-center mb-4">
                       <div className="h-12 w-12 mr-3">
                         <img 
                           className="h-12 w-12 rounded-full object-cover border-2 border-secondary" 
-                          src={rankings[0]?.player.profileImg} 
-                          alt={rankings[0]?.player.name}
+                          src={rankingsData.players[0]?.player.profileImg} 
+                          alt={rankingsData.players[0]?.player.name}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.onerror = null;
-                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(rankings[0]?.player.name)}&size=100&background=random`;
+                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(rankingsData.players[0]?.player.name)}&size=100&background=random`;
                           }}
                         />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{rankings[0]?.player.name}</h3>
-                        <p className="text-xs text-neutral-400">{rankings[0]?.player.team} • {rankings[0]?.player.country}</p>
+                        <h3 className="text-lg font-semibold text-white">{rankingsData.players[0]?.player.name}</h3>
+                        <p className="text-xs text-neutral-400">{rankingsData.players[0]?.player.team} • {rankingsData.players[0]?.player.country}</p>
                       </div>
                       <div className="ml-auto">
-                        <div className="text-2xl font-bold text-secondary">{Math.round(rankings[0]?.score.totalScore)}</div>
+                        <div className="text-2xl font-bold text-secondary">{Math.round(rankingsData.players[0]?.score.totalScore)}</div>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between mb-1">
                           <span className="text-sm font-medium text-neutral-300">Social Media</span>
-                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.socialScore)}%</span>
+                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankingsData.players[0]?.score.socialScore)}%</span>
                         </div>
                         <div className="w-full bg-neutral-700 rounded-full h-2">
-                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.socialScore)}%` }}></div>
+                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.round(rankingsData.players[0]?.score.socialScore)}%` }}></div>
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
                           <span className="text-sm font-medium text-neutral-300">Game Performance</span>
-                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankings[0]?.score.performanceScore)}%</span>
+                          <span className="text-sm font-medium text-neutral-300">{Math.round(rankingsData.players[0]?.score.performanceScore)}%</span>
                         </div>
                         <div className="w-full bg-neutral-700 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.performanceScore)}%` }}></div>
+                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.round(rankingsData.players[0]?.score.performanceScore)}%` }}></div>
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
                           <span className="text-sm font-medium text-neutral-300">Fan Engagement</span>
-                          <span className="text-sm font-medium text-neutral-300">{(rankings[0]?.score.engagementScore).toFixed(2)}%</span>
+                          <span className="text-sm font-medium text-neutral-300">{(rankingsData.players[0]?.score.engagementScore).toFixed(2)}%</span>
                         </div>
                         <div className="w-full bg-neutral-700 rounded-full h-2">
-                          <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${Math.round(rankings[0]?.score.engagementScore)}%` }}></div>
+                          <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${Math.round(rankingsData.players[0]?.score.engagementScore)}%` }}></div>
                         </div>
                       </div>
                     </div>
                     <div className="mt-6 pt-6 border-t border-neutral-700">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-neutral-400">Live data</span>
-                        <Link href={`/player/${rankings[0]?.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link href={`/player/${rankingsData.players[0]?.player.slug || rankingsData.players[0]?.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
                           <span className="text-secondary hover:text-secondary-light text-sm cursor-pointer">View Profile</span>
                         </Link>
                       </div>

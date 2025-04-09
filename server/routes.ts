@@ -424,30 +424,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rankings endpoints
   app.get("/api/rankings", async (req, res) => {
     try {
-      // Get query parameters for filtering
-      const { limit = "100", sortBy = "totalScore" } = req.query;
+      // Get query parameters for pagination and filtering
+      const { page = "1", perPage = "30", sortBy = "totalScore" } = req.query;
+      
+      // Parse pagination parameters
+      const currentPage = Math.max(1, parseInt(page as string) || 1);
+      const playersPerPage = parseInt(perPage as string) || 30;
       
       // Get all players with their stats and scores
-      const players = await storage.getPlayersWithStatsAndScores();
+      const allPlayers = await storage.getPlayersWithStatsAndScores();
       
       // Sort based on the sortBy parameter
       if (sortBy === "socialScore") {
-        players.sort((a, b) => b.score.socialScore - a.score.socialScore);
+        allPlayers.sort((a, b) => b.score.socialScore - a.score.socialScore);
       } else if (sortBy === "performanceScore") {
-        players.sort((a, b) => b.score.performanceScore - a.score.performanceScore);
+        allPlayers.sort((a, b) => b.score.performanceScore - a.score.performanceScore);
       } else if (sortBy === "engagementScore") {
-        players.sort((a, b) => b.score.engagementScore - a.score.engagementScore);
+        allPlayers.sort((a, b) => b.score.engagementScore - a.score.engagementScore);
       } else {
         // Default sort by totalScore
-        players.sort((a, b) => b.score.totalScore - a.score.totalScore);
+        allPlayers.sort((a, b) => b.score.totalScore - a.score.totalScore);
       }
       
-      // Apply limit
-      const limitNum = parseInt(limit as string);
-      const limitedPlayers = isNaN(limitNum) ? players : players.slice(0, limitNum);
+      // Calculate pagination
+      const startIndex = (currentPage - 1) * playersPerPage;
+      const endIndex = startIndex + playersPerPage;
+      const paginatedPlayers = allPlayers.slice(startIndex, endIndex);
+      const totalPlayers = allPlayers.length;
+      const totalPages = Math.ceil(totalPlayers / playersPerPage);
       
-      res.json(limitedPlayers);
+      res.json({
+        players: paginatedPlayers,
+        pagination: {
+          currentPage,
+          totalPages,
+          totalPlayers,
+          playersPerPage
+        }
+      });
     } catch (error) {
+      console.error("Failed to get rankings:", error);
       res.status(500).json({ message: "Failed to get rankings" });
     }
   });
