@@ -15,11 +15,22 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
+import { FanProfile } from "@shared/schema";
 
 export default function Header() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Fetch user profile if logged in
+  const { data: profile } = useQuery<FanProfile>({
+    queryKey: ['/api/fan-profile'],
+    queryFn: ({ signal }) => 
+      fetch('/api/fan-profile', { signal })
+        .then(res => res.ok ? res.json() : null),
+    enabled: !!user,
+  });
   
   const isActiveLink = (path: string) => {
     return location === path;
@@ -74,9 +85,13 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-2 bg-white/10 hover:bg-white/20">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-secondary text-white text-sm">
-                        {user.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
+                      {profile?.avatarUrl ? (
+                        <AvatarImage src={profile.avatarUrl} alt={profile.displayName || user.username} />
+                      ) : (
+                        <AvatarFallback className="bg-secondary text-white text-sm">
+                          {user.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -175,9 +190,13 @@ export default function Header() {
                   <div className="space-y-2">
                     <div className="flex items-center p-2 mb-2">
                       <Avatar className="h-8 w-8 mr-3">
-                        <AvatarFallback className="bg-secondary text-white text-sm">
-                          {user.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
+                        {profile?.avatarUrl ? (
+                          <AvatarImage src={profile.avatarUrl} alt={profile.displayName || user.username} />
+                        ) : (
+                          <AvatarFallback className="bg-secondary text-white text-sm">
+                            {user.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        )}
                       </Avatar>
                       <div>
                         <p className="text-sm font-medium text-white">{user.username}</p>
