@@ -427,7 +427,7 @@ export default function HomePage() {
                 ) : (
                   topSocialPlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <Link href={`/player/${createProperSlug(item.player.name, item.player.slug)}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -481,7 +481,7 @@ export default function HomePage() {
                 ) : (
                   topPerformancePlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <Link href={`/player/${createProperSlug(item.player.name, item.player.slug)}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -535,7 +535,7 @@ export default function HomePage() {
                 ) : (
                   topEngagementPlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <Link href={`/player/${createProperSlug(item.player.name, item.player.slug)}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -654,7 +654,7 @@ export default function HomePage() {
                     <div className="mt-6 pt-6 border-t border-neutral-700">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-neutral-400">Live data</span>
-                        <Link href={`/player/${rankingsData.players[0]?.player.slug || rankingsData.players[0]?.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <Link href={`/player/${rankingsData.players[0]?.player.slug}`}>
                           <span className="text-secondary hover:text-secondary-light text-sm cursor-pointer">View Profile</span>
                         </Link>
                       </div>
