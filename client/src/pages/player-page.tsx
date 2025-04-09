@@ -198,7 +198,7 @@ export default function PlayerPage() {
                     />
                   </div>
                   <h3 className="text-xl font-bold text-neutral-800 mb-1">{playerDetails?.player.name}</h3>
-                  <p className="text-neutral-500 mb-4">{playerDetails?.player.club} • {playerDetails?.player.country}</p>
+                  <p className="text-neutral-500 mb-4">{playerDetails?.player.team} • {playerDetails?.player.country}</p>
                   <div className="inline-flex bg-primary text-white text-xl font-bold rounded-full w-16 h-16 items-center justify-center mb-4">
                     {Math.round(playerDetails?.score.totalScore || 0)}
                   </div>

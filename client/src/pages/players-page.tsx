@@ -22,7 +22,7 @@ export default function PlayersPage() {
         if (searchTerm) {
           return (
             player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            player.club.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            player.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
             player.country.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
@@ -89,7 +89,7 @@ export default function PlayersPage() {
                 </div>
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-lg mb-1 text-neutral-800">{player.name}</h3>
-                  <p className="text-neutral-500 text-sm mb-2">{player.club}</p>
+                  <p className="text-neutral-500 text-sm mb-2">{player.team}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-neutral-600">{player.country}</span>
                     <Button variant="outline" size="sm" className="text-xs">

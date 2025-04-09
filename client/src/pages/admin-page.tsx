@@ -821,7 +821,7 @@ function UpdateSinglePlayerScoreMutation({ player }: { player: Player }) {
         />
         <div>
           <div className="font-medium">{player.name}</div>
-          <div className="text-xs text-neutral-500">{player.club}</div>
+          <div className="text-xs text-neutral-500">{player.team}</div>
         </div>
       </div>
       <Button
@@ -1223,7 +1223,7 @@ export default function AdminPage() {
                                 <span>{player.name}</span>
                               </div>
                             </TableCell>
-                            <TableCell>{player.club}</TableCell>
+                            <TableCell>{player.team}</TableCell>
                             <TableCell className="text-right">
                               <Button
                                 variant="outline"
@@ -1292,7 +1292,7 @@ export default function AdminPage() {
                           />
                           <div className="text-left">
                             <div className="font-medium">{player.name}</div>
-                            <div className="text-xs text-neutral-500">{player.club}</div>
+                            <div className="text-xs text-neutral-500">{player.team}</div>
                           </div>
                         </div>
                       </Button>
@@ -1576,7 +1576,7 @@ export default function AdminPage() {
                               {item.player.name}
                             </div>
                           </TableCell>
-                          <TableCell>{item.player.club}</TableCell>
+                          <TableCell>{item.player.team}</TableCell>
                           <TableCell className="font-bold text-primary">
                             {Math.round(item.score.totalScore)}
                           </TableCell>

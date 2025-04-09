@@ -10,7 +10,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Lionel Messi",
-      club: "Inter Miami CF",
+      team: "Inter Miami CF",
       country: "Argentina",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg",
@@ -34,7 +34,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Cristiano Ronaldo",
-      club: "Al Nassr FC",
+      team: "Al Nassr FC",
       country: "Portugal",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg",
@@ -58,7 +58,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Kylian Mbappé",
-      club: "Real Madrid",
+      team: "Real Madrid",
       country: "France",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/5/57/2019-07-17_SG_Dynamo_Dresden_vs._Paris_Saint-Germain_by_Sandro_Halank–029_%28cropped%29.jpg",
@@ -82,7 +82,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Erling Haaland",
-      club: "Manchester City",
+      team: "Manchester City",
       country: "Norway",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/2/25/Erling_Haaland_2023_%28cropped%29.jpg",
@@ -106,7 +106,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Kevin De Bruyne",
-      club: "Manchester City",
+      team: "Manchester City",
       country: "Belgium",
       position: "Midfielder",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/4/40/Kevin_De_Bruyne_201807091.jpg",
@@ -130,7 +130,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Vinícius Júnior",
-      club: "Real Madrid",
+      team: "Real Madrid",
       country: "Brazil",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/f/f3/Vinicius_Junior_2021.jpg",
@@ -154,7 +154,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Mohamed Salah",
-      club: "Liverpool",
+      team: "Liverpool",
       country: "Egypt",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Mohamed_Salah_2018.jpg",
@@ -178,7 +178,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Jude Bellingham",
-      club: "Real Madrid",
+      team: "Real Madrid",
       country: "England",
       position: "Midfielder",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/9/9e/Jude_Bellingham_2023_%28cropped%29.jpg",
@@ -202,7 +202,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Robert Lewandowski",
-      club: "FC Barcelona",
+      team: "FC Barcelona",
       country: "Poland",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/c/cc/Robert_Lewandowski%2C_FC_Bayern_München_%28by_Sven_Mandel%2C_2019-05-27%29_01.jpg",
@@ -226,7 +226,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Luka Modrić",
-      club: "Real Madrid",
+      team: "Real Madrid",
       country: "Croatia",
       position: "Midfielder",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Luka_Modri%C4%87_2015.jpg",
@@ -250,7 +250,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Neymar Jr.",
-      club: "Al Hilal",
+      team: "Al Hilal",
       country: "Brazil",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/8/83/Neymar_PSG.jpg",
@@ -274,7 +274,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Virgil van Dijk",
-      club: "Liverpool",
+      team: "Liverpool",
       country: "Netherlands",
       position: "Defender",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Virgil_van_Dijk_2019.jpg",
@@ -298,7 +298,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Karim Benzema",
-      club: "Al-Ittihad",
+      team: "Al-Ittihad",
       country: "France",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Karim_Benzema_wearing_Real_Madrid_home_kit_2021-2022.jpg",
@@ -322,7 +322,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Trent Alexander-Arnold",
-      club: "Liverpool",
+      team: "Liverpool",
       country: "England",
       position: "Defender",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/e/e6/Trent_Alexander-Arnold_2018.jpg",
@@ -346,7 +346,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Harry Kane",
-      club: "Bayern Munich",
+      team: "Bayern Munich",
       country: "England",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Harry_Kane_in_Russia_2.jpg",
@@ -370,7 +370,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Rodri",
-      club: "Manchester City",
+      team: "Manchester City",
       country: "Spain",
       position: "Midfielder",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/9/90/Rodri_2019.jpg",
@@ -394,7 +394,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Joshua Kimmich",
-      club: "Bayern Munich",
+      team: "Bayern Munich",
       country: "Germany",
       position: "Midfielder",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/8/85/20180602_FIFA_Friendly_Match_Austria_vs._Germany_Joshua_Kimmich_850_0621.jpg",
@@ -418,7 +418,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Son Heung-min",
-      club: "Tottenham Hotspur",
+      team: "Tottenham Hotspur",
       country: "South Korea",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Son_Heung-min_June_2018_%28cropped%29.jpg",
@@ -442,7 +442,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Rúben Dias",
-      club: "Manchester City",
+      team: "Manchester City",
       country: "Portugal",
       position: "Defender",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/d/d3/R%C3%BAben_Dias_2020.jpg",
@@ -466,7 +466,7 @@ export const playerDatabase: PlayerData[] = [
   {
     player: {
       name: "Antoine Griezmann",
-      club: "Atlético Madrid",
+      team: "Atlético Madrid",
       country: "France",
       position: "Forward",
       profileImg: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Antoine_Griezmann_2018.jpg",

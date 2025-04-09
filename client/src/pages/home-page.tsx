@@ -203,7 +203,7 @@ export default function HomePage() {
                           </div>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.club}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.team}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-lg font-bold text-primary">{Math.round(item.score.totalScore)}</div>
                       </td>
@@ -297,7 +297,7 @@ export default function HomePage() {
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>
@@ -342,7 +342,7 @@ export default function HomePage() {
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>
@@ -387,7 +387,7 @@ export default function HomePage() {
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-neutral-900">{item.player.name}</p>
-                            <p className="text-xs text-neutral-500">{item.player.club}</p>
+                            <p className="text-xs text-neutral-500">{item.player.team}</p>
                           </div>
                         </div>
                       </Link>

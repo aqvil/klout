@@ -43,7 +43,7 @@ export default function RankingsPage() {
           if (searchTerm) {
             return (
               item.player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              item.player.club.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.player.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
               item.player.country.toLowerCase().includes(searchTerm.toLowerCase())
             );
           }
@@ -60,7 +60,7 @@ export default function RankingsPage() {
             };
             
             const clubsInLeague = leagueToClubMapping[selectedLeague] || [];
-            return clubsInLeague.some(club => item.player.club.includes(club));
+            return clubsInLeague.some(club => item.player.team.includes(club));
           }
           
           return true;
@@ -257,7 +257,7 @@ export default function RankingsPage() {
                         </div>
                       </Link>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.club}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{item.player.team}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg font-bold text-primary">{Math.round(item.score.totalScore)}</div>
                     </td>
