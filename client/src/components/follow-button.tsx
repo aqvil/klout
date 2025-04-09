@@ -20,21 +20,13 @@ export function FollowButton({
   variant = "default"
 }: FollowButtonProps) {
   const { user } = useAuth();
+  const playerId = typeof playerIdOrSlug === 'string' ? 0 : playerIdOrSlug;
   const { 
     isFollowing, 
     followerCount, 
-    follow, 
-    unfollow, 
-    isFollowingLoading 
-  } = useFollow(playerIdOrSlug);
-
-  const handleClick = () => {
-    if (isFollowing) {
-      unfollow();
-    } else {
-      follow();
-    }
-  };
+    toggleFollow, 
+    isLoading 
+  } = useFollow(playerId);
 
   if (!user) {
     return (
@@ -67,10 +59,10 @@ export function FollowButton({
         variant={isFollowing ? "outline" : variant}
         size="sm"
         className={className}
-        onClick={handleClick}
-        disabled={isFollowingLoading}
+        onClick={toggleFollow}
+        disabled={isLoading}
       >
-        {isFollowingLoading ? (
+        {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin mr-1" />
         ) : isFollowing ? (
           <HeartOff className="h-4 w-4 mr-1" />

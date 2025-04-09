@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -8,112 +7,60 @@ export function useFollow(playerId: number) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
-  // Check if user is following this player
-  const { 
-    data: followCheckData, 
-    isLoading: isCheckingFollow,
-    refetch: refetchFollowStatus 
-  } = useQuery<{isFollowing: boolean, playerId: number}>({
-    queryKey: [`/api/follows/check/${playerId}`],
-    enabled: !!user && !!playerId,
-  });
-  
-  // Get follower count
-  const {
-    data: followersData,
-    isLoading: isLoadingFollowers
-  } = useQuery<any[]>({
-    queryKey: [`/api/follows/player/${playerId}`],
-    enabled: !!playerId,
-  });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const followerCount = followersData?.length || 0;
-  const isFollowing = followCheckData?.isFollowing ?? false;
-
-  // Follow a player
-  const followMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        const res = await apiRequest("POST", `/api/follows/${playerId}`);
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          return await res.json();
-        } else {
-          // Handle non-JSON response
-          const text = await res.text();
-          throw new Error(`Server returned non-JSON response: ${text}`);
-        }
-      } catch (error) {
-        console.error("Follow error:", error);
-        throw error;
+  // Load follow status when user or playerId changes
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!user || !playerId) {
+        setIsFollowing(false);
+        return;
       }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: [`/api/follows/check/${playerId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/user"] });
-      toast({
-        title: "Success",
-        description: "You are now following this player",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to follow player",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Unfollow a player
-  const unfollowMutation = useMutation({
-    mutationFn: async () => {
+      
       try {
-        const res = await apiRequest("DELETE", `/api/follows/${playerId}`);
-        // For DELETE, we often don't get a response body (204 No Content)
-        if (res.status === 204) {
-          return { success: true };
-        }
+        setIsLoading(true);
+        const response = await fetch(`/api/follows/check/${playerId}`, {
+          credentials: 'include'
+        });
         
-        // If we do get a body, check if it's JSON
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          return await res.json();
-        } else {
-          // Return success for other 2xx status codes
-          if (res.ok) {
-            return { success: true };
-          }
-          // Otherwise throw error
-          const text = await res.text();
-          throw new Error(`Server error: ${text}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.isFollowing);
         }
       } catch (error) {
-        console.error("Unfollow error:", error);
-        throw error;
+        console.error("Error checking follow status:", error);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: [`/api/follows/check/${playerId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/follows/user"] });
-      toast({
-        title: "Success",
-        description: "You have unfollowed this player",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to unfollow player",
-        variant: "destructive",
-      });
-    },
-  });
+    };
+    
+    checkFollowStatus();
+  }, [user, playerId]);
+  
+  // Load follower count
+  useEffect(() => {
+    const loadFollowerCount = async () => {
+      if (!playerId) return;
+      
+      try {
+        const response = await fetch(`/api/follows/player/${playerId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setFollowerCount(data.length || 0);
+        }
+      } catch (error) {
+        console.error("Error loading followers:", error);
+      }
+    };
+    
+    loadFollowerCount();
+  }, [playerId, isFollowing]); // Also reload when follow status changes
 
-  const toggleFollow = () => {
+  // Handle follow action
+  const follow = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -122,23 +69,84 @@ export function useFollow(playerId: number) {
       });
       return;
     }
-
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/follows/${playerId}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        setIsFollowing(true);
+        setFollowerCount(prev => prev + 1);
+        toast({
+          title: "Success",
+          description: "You are now following this player",
+        });
+      } else {
+        throw new Error("Failed to follow player");
+      }
+    } catch (error) {
+      console.error("Follow error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to follow player. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle unfollow action
+  const unfollow = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/follows/${playerId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        setIsFollowing(false);
+        setFollowerCount(prev => Math.max(0, prev - 1));
+        toast({
+          title: "Success",
+          description: "You have unfollowed this player",
+        });
+      } else {
+        throw new Error("Failed to unfollow player");
+      }
+    } catch (error) {
+      console.error("Unfollow error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to unfollow player. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Toggle follow status
+  const toggleFollow = () => {
     if (isFollowing) {
-      unfollowMutation.mutate();
+      unfollow();
     } else {
-      followMutation.mutate();
+      follow();
     }
   };
 
   return {
     isFollowing,
     followerCount,
-    isLoading: isCheckingFollow || isLoadingFollowers || followMutation.isPending || unfollowMutation.isPending,
+    isLoading,
     toggleFollow,
-    follow: () => followMutation.mutate(),
-    unfollow: () => unfollowMutation.mutate(),
-    followMutation,
-    unfollowMutation,
-    refetchFollowStatus
+    follow,
+    unfollow
   };
 }
