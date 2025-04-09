@@ -24,31 +24,23 @@ export default function Header() {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Link href="/">
-                <span className="text-white text-xl font-bold cursor-pointer">SoccerInfluence</span>
+              <Link href="/" className="text-white text-xl font-bold cursor-pointer">
+                SoccerInfluence
               </Link>
             </div>
             <nav className="hidden md:ml-10 md:flex space-x-8">
-              <Link href="/rankings">
-                <a className={`${isActiveLink('/rankings') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
-                  Rankings
-                </a>
+              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+                Rankings
               </Link>
-              <Link href="/players">
-                <a className={`${isActiveLink('/players') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
-                  Players
-                </a>
+              <Link href="/players" className={`${isActiveLink('/players') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+                Players
               </Link>
-              <Link href="/about">
-                <a className={`${isActiveLink('/about') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
-                  About
-                </a>
+              <Link href="/about" className={`${isActiveLink('/about') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+                About
               </Link>
               {user?.isAdmin && (
-                <Link href="/admin">
-                  <a className={`${isActiveLink('/admin') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
-                    Admin
-                  </a>
+                <Link href="/admin" className={`${isActiveLink('/admin') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+                  Admin
                 </Link>
               )}
             </nav>
@@ -100,26 +92,18 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-white/10">
             <div className="space-y-1 pb-3">
-              <Link href="/rankings">
-                <a className={`${isActiveLink('/rankings') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
-                  Rankings
-                </a>
+              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+                Rankings
               </Link>
-              <Link href="/players">
-                <a className={`${isActiveLink('/players') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
-                  Players
-                </a>
+              <Link href="/players" className={`${isActiveLink('/players') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+                Players
               </Link>
-              <Link href="/about">
-                <a className={`${isActiveLink('/about') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
-                  About
-                </a>
+              <Link href="/about" className={`${isActiveLink('/about') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+                About
               </Link>
               {user?.isAdmin && (
-                <Link href="/admin">
-                  <a className={`${isActiveLink('/admin') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
-                    Admin
-                  </a>
+                <Link href="/admin" className={`${isActiveLink('/admin') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+                  Admin
                 </Link>
               )}
             </div>

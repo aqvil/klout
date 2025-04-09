@@ -7,6 +7,7 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import RankingsPage from "@/pages/rankings-page";
 import PlayerPage from "@/pages/player-page";
+import PlayersPage from "@/pages/players-page";
 import AdminPage from "@/pages/admin-page";
 import AboutPage from "@/pages/about-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/rankings" component={RankingsPage} />
+      <Route path="/players" component={PlayersPage} />
       <Route path="/players/:id" component={PlayerPage} />
       <Route path="/about" component={AboutPage} />
       <ProtectedRoute path="/admin" component={AdminPage} adminOnly={true} />
