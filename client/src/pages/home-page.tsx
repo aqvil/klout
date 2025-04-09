@@ -24,20 +24,17 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   
   // Fetch top ranked players with pagination
-  const { data: rawRankingsData, isLoading: isLoadingRankings } = useQuery<PlayerWithStats[]>({
+  const { data: rankingsData, isLoading: isLoadingRankings } = useQuery<{
+    players: PlayerWithStats[],
+    pagination: {
+      currentPage: number,
+      totalPages: number,
+      totalPlayers: number,
+      playersPerPage: number
+    }
+  }>({
     queryKey: ["/api/rankings", { page: currentPage, perPage: 30 }],
   });
-  
-  // Convert the array response to the expected format
-  const rankingsData = rawRankingsData ? {
-    players: rawRankingsData,
-    pagination: {
-      currentPage: currentPage,
-      totalPages: Math.ceil(rawRankingsData.length / 30),
-      totalPlayers: rawRankingsData.length,
-      playersPerPage: 30
-    }
-  } : undefined;
   
   // Fetch top performers by category
   const { data: topSocialPlayers, isLoading: isLoadingSocial } = useQuery<PlayerWithStats[]>({

@@ -431,8 +431,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentPage = Math.max(1, parseInt(page as string) || 1);
       const playersPerPage = parseInt(perPage as string) || 30;
       
+      console.log(`Rankings API request - page: ${currentPage}, perPage: ${playersPerPage}, sortBy: ${sortBy}`);
+      
       // Get all players with their stats and scores
       const allPlayers = await storage.getPlayersWithStatsAndScores();
+      
+      console.log(`Retrieved ${allPlayers.length} total players`);
       
       // Sort based on the sortBy parameter
       if (sortBy === "socialScore") {
@@ -448,12 +452,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate pagination
       const startIndex = (currentPage - 1) * playersPerPage;
-      const endIndex = startIndex + playersPerPage;
+      const endIndex = Math.min(startIndex + playersPerPage, allPlayers.length);
       const paginatedPlayers = allPlayers.slice(startIndex, endIndex);
       const totalPlayers = allPlayers.length;
       const totalPages = Math.ceil(totalPlayers / playersPerPage);
       
-      res.json({
+      console.log(`Returning ${paginatedPlayers.length} players for page ${currentPage} of ${totalPages}`);
+      console.log(`Pagination range: ${startIndex + 1}-${endIndex} of ${totalPlayers} players`);
+      
+      // Return the paginated data with metadata
+      return res.json({
         players: paginatedPlayers,
         pagination: {
           currentPage,
