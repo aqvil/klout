@@ -691,6 +691,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/settings/:key", requireAdmin, updateSetting);
   app.get("/api/settings", requireAdmin, getAllSettings);
   
+  // Maintenance endpoints
+  app.post("/api/maintenance/populate-slugs", requireAdmin, async (req, res) => {
+    try {
+      console.log("Starting slug population for all players...");
+      
+      // Import the populate-slugs script
+      const { populateSlugs } = await import("./tools/populate-slugs");
+      
+      // Run it
+      const result = await populateSlugs();
+      
+      res.json({ 
+        message: `Slug population process completed. ${result.updated} players updated out of ${result.total} total players.`,
+        success: result.success,
+        ...result
+      });
+    } catch (error) {
+      console.error('Error in populate-slugs endpoint:', error);
+      res.status(500).json({ message: "Failed to populate slugs" });
+    }
+  });
+  
   // Local player database endpoints
   
   // Import players from local database

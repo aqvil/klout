@@ -235,7 +235,7 @@ export default function RankingsPage() {
                   <tr key={item.player.id} className="hover:bg-neutral-50 cursor-pointer">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-700">{startIndex + index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                      <Link href={`/player/${item.player.slug || item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
                             <img 
