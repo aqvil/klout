@@ -43,13 +43,15 @@ async function getApiConfig() {
     headers['X-RapidAPI-Host'] = 'api-football-v1.p.rapidapi.com';
     return {
       baseUrl: RAPIDAPI_BASE_URL,
-      headers
+      headers,
+      apiKey: apiKey || ''
     };
   } else {
     headers['x-apisports-key'] = apiKey || '';
     return {
       baseUrl: DIRECT_API_BASE_URL,
-      headers
+      headers,
+      apiKey: apiKey || ''
     };
   }
 };
@@ -67,13 +69,14 @@ export async function testApiConnection(req: Request, res: Response) {
     
     // Get the API configuration with headers and base URL
     const config = await getApiConfig();
+    const apiKey = await storage.getSetting(FOOTBALL_API_KEY) || process.env.FOOTBALL_API_KEY;
     
-    if (!config.apiKey) {
+    if (!apiKey) {
       return res.status(400).json({ success: false, message: 'No API key configured' });
     }
     
     // Show the first 4 characters of the API key for verification
-    const apiKeyPreview = config.apiKey.substring(0, 4) + '...';
+    const apiKeyPreview = apiKey.substring(0, 4) + '...';
     console.log(`Football API Key status: Set (starts with: ${apiKeyPreview})`);
     
     // Log which endpoint we're using
@@ -137,8 +140,8 @@ export async function testApiConnection(req: Request, res: Response) {
       });
       
       if (seasonResponse.ok) {
-        const seasonData = await seasonResponse.json();
-        if (seasonData.response && Array.isArray(seasonData.response) && seasonData.response.length > 0) {
+        const seasonData = await seasonResponse.json() as { response?: number[] };
+        if (seasonData?.response && Array.isArray(seasonData.response) && seasonData.response.length > 0) {
           latestSeason = Math.max(...seasonData.response);
           console.log(`Latest season from API: ${latestSeason}`);
         } else {
@@ -536,11 +539,18 @@ export async function fetchPlayersFromMajorLeagues(limit: number = 10): Promise<
       
       // Take top players from each team based on rating - fallback to first players if no ratings
       let topPlayers;
-      const playersWithRating = processedPlayers.filter(p => p.rating && parseFloat(p.rating) > 6.5);
+      const playersWithRating = processedPlayers.filter(p => {
+        const rating = typeof p.rating === 'string' ? parseFloat(p.rating) : p.rating;
+        return rating && rating > 6.5;
+      });
       
       if (playersWithRating.length > 0) {
         topPlayers = playersWithRating
-          .sort((a, b) => parseFloat(String(b.rating || 0)) - parseFloat(String(a.rating || 0)))
+          .sort((a, b) => {
+            const ratingA = typeof a.rating === 'string' ? parseFloat(a.rating) : (a.rating || 0);
+            const ratingB = typeof b.rating === 'string' ? parseFloat(b.rating) : (b.rating || 0);
+            return ratingB - ratingA;
+          })
           .slice(0, 3);
         console.log(`Found ${topPlayers.length} top rated players`);
       } else {

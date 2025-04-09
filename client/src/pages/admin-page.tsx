@@ -718,8 +718,17 @@ function ApiKeyManagement() {
       <div className="border rounded-lg p-4 bg-neutral-50">
         <h3 className="text-lg font-medium mb-2">Football API Key</h3>
         <p className="text-sm text-neutral-600 mb-4">
-          The application uses an API key to authenticate with the Football API service. This key is stored securely and used for all API requests.
+          The application requires an API key from <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API-Football</a> or RapidAPI. Register for a free account to get an API key with 50 daily requests. The key is stored securely and used for all API requests.
         </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+          <p className="text-sm text-blue-700">
+            <strong>API Options:</strong> You can use either:
+            <ul className="list-disc ml-5 mt-1">
+              <li>API-Football direct key (format: <code className="bg-blue-100 px-1 rounded">abcd1234...</code>)</li> 
+              <li>RapidAPI key (longer format: <code className="bg-blue-100 px-1 rounded">a1b2c3d4e5f6...</code>)</li>
+            </ul>
+          </p>
+        </div>
         <form onSubmit={handleUpdateApiKey} className="space-y-4">
           <div className="flex flex-col space-y-2">
             <Label htmlFor="apiKey">API Key</Label>
@@ -1635,9 +1644,19 @@ export default function AdminPage() {
                   <div className="border rounded-lg p-4 bg-neutral-50">
                     <h3 className="text-lg font-medium mb-2">About the Football API</h3>
                     <p className="text-sm text-neutral-600 mb-4">
-                      The application can use the real Football API as an alternative data source.
-                      This API is rate-limited to 50 requests per day on the free tier.
+                      This application uses real-time football data from <a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API-Football</a>. The free tier provides 50 requests per day, which is enough to import and update a few players daily.
                     </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                      <p className="text-sm text-blue-700">
+                        <strong>Getting Started:</strong>
+                        <ol className="list-decimal ml-5 mt-1 space-y-1">
+                          <li>Register for a free API key at <a href="https://www.api-football.com/register" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">API-Football</a></li> 
+                          <li>Enter your API key in the configuration section above</li>
+                          <li>Test your connection using the button below</li>
+                          <li>Import players from top leagues</li>
+                        </ol>
+                      </p>
+                    </div>
                     <p className="text-sm text-neutral-600">
                       The built-in local player database is recommended for most use cases, but you can
                       still use the API for testing or specific player lookups.
