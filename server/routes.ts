@@ -457,11 +457,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalPlayers = allPlayers.length;
       const totalPages = Math.ceil(totalPlayers / playersPerPage);
       
-      console.log(`Returning ${paginatedPlayers.length} players for page ${currentPage} of ${totalPages}`);
-      console.log(`Pagination range: ${startIndex + 1}-${endIndex} of ${totalPlayers} players`);
+      console.log(`Pagination: START=${startIndex}, END=${endIndex}, TOTAL=${totalPlayers}`);
+      console.log(`Paginated players count: ${paginatedPlayers.length}`);
+      console.log(`First player: ${paginatedPlayers[0]?.player.name}, Last player: ${paginatedPlayers[paginatedPlayers.length-1]?.player.name}`);
       
-      // Return the paginated data with metadata
-      return res.json({
+      // Force the proper structure even if the types are mismatched
+      const response = {
         players: paginatedPlayers,
         pagination: {
           currentPage,
@@ -469,7 +470,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPlayers,
           playersPerPage
         }
-      });
+      };
+
+      // Extra verification
+      console.log(`Response structure: players array=${Array.isArray(response.players)}, pagination object=${typeof response.pagination === 'object'}`);
+      
+      // Return the paginated data with metadata
+      return res.json(response);
     } catch (error) {
       console.error("Failed to get rankings:", error);
       res.status(500).json({ message: "Failed to get rankings" });

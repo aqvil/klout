@@ -32,8 +32,11 @@ export default function HomePage() {
   const rankingsData = useMemo(() => {
     if (!rawRankingsData) return undefined;
     
+    // Only take the first 30 players for display on the home page
+    const limitedPlayers = rawRankingsData.slice(0, 30);
+    
     return {
-      players: rawRankingsData,
+      players: limitedPlayers,
       pagination: {
         currentPage: currentPage,
         totalPages: Math.ceil(rawRankingsData.length / 30),
