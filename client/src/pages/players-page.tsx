@@ -72,7 +72,7 @@ export default function PlayersPage() {
         ) : filteredPlayers.length > 0 ? (
           // Player cards
           filteredPlayers.map((player) => (
-            <Link key={player.id} href={`/players/${player.id}`}>
+            <Link key={player.id} href={`/player/${player.name.toLowerCase().replace(/\s+/g, '-')}`}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                 <div className="aspect-square bg-neutral-100">
                   <img

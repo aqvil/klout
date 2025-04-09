@@ -227,7 +227,7 @@ export default function HomePage() {
                     <tr key={item.player.id} className="hover:bg-neutral-50 cursor-pointer">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-700">{index + 1}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link href={`/players/${item.player.id}`}>
+                        <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 
@@ -336,7 +336,7 @@ export default function HomePage() {
                 ) : (
                   topSocialPlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/players/${item.player.id}`}>
+                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -390,7 +390,7 @@ export default function HomePage() {
                 ) : (
                   topPerformancePlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/players/${item.player.id}`}>
+                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -444,7 +444,7 @@ export default function HomePage() {
                 ) : (
                   topEngagementPlayers?.map((item) => (
                     <li key={item.player.id} className="py-3 flex justify-between items-center">
-                      <Link href={`/players/${item.player.id}`}>
+                      <Link href={`/player/${item.player.name.toLowerCase().replace(/\s+/g, "-")}`}>
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <img 
@@ -563,7 +563,7 @@ export default function HomePage() {
                     <div className="mt-6 pt-6 border-t border-neutral-700">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-neutral-400">Live data</span>
-                        <Link href={`/players/${rankings[0]?.player.id}`}>
+                        <Link href={`/player/${rankings[0]?.player.name.toLowerCase().replace(/\s+/g, '-')}`}>
                           <span className="text-secondary hover:text-secondary-light text-sm cursor-pointer">View Profile</span>
                         </Link>
                       </div>
