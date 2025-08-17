@@ -24,27 +24,17 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   
   // Fetch top ranked players with pagination
-  const { data: rawRankingsData, isLoading: isLoadingRankings } = useQuery<PlayerWithStats[]>({
+  const { data: rankingsData, isLoading: isLoadingRankings } = useQuery<{
+    players: PlayerWithStats[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalPlayers: number;
+      playersPerPage: number;
+    };
+  }>({
     queryKey: ["/api/rankings", { page: currentPage, perPage: 30 }],
   });
-  
-  // Transform the array response to the expected format with pagination info
-  const rankingsData = useMemo(() => {
-    if (!rawRankingsData) return undefined;
-    
-    // Only take the first 30 players for display on the home page
-    const limitedPlayers = rawRankingsData.slice(0, 30);
-    
-    return {
-      players: limitedPlayers,
-      pagination: {
-        currentPage: currentPage,
-        totalPages: Math.ceil(rawRankingsData.length / 30),
-        totalPlayers: rawRankingsData.length,
-        playersPerPage: 30
-      }
-    };
-  }, [rawRankingsData, currentPage]);
   
   // Fetch top performers by category
   const { data: topSocialPlayers, isLoading: isLoadingSocial } = useQuery<PlayerWithStats[]>({

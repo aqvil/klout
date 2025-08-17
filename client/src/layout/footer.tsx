@@ -32,7 +32,7 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Rankings</h4>
             <ul className="space-y-2">
-              <li><Link href="/rankings"><a className="hover:text-white">Top 100 Players</a></Link></li>
+              <li><Link href="/rankings" className="hover:text-white">Top 100 Players</Link></li>
               <li><a href="#" className="hover:text-white">By League</a></li>
               <li><a href="#" className="hover:text-white">By Country</a></li>
               <li><a href="#" className="hover:text-white">By Position</a></li>
@@ -42,7 +42,7 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-2">
-              <li><Link href="/about"><a className="hover:text-white">How Scores Work</a></Link></li>
+              <li><Link href="/about" className="hover:text-white">How Scores Work</Link></li>
               <li><a href="#" className="hover:text-white">API Documentation</a></li>
               <li><a href="#" className="hover:text-white">Data Sources</a></li>
               <li><a href="#" className="hover:text-white">FAQs</a></li>
@@ -52,7 +52,7 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
-              <li><Link href="/about"><a className="hover:text-white">About Us</a></Link></li>
+              <li><Link href="/about" className="hover:text-white">About Us</Link></li>
               <li><a href="https://aqvil.com" target="_blank" rel="noopener noreferrer" className="hover:text-white">Aqvil Fantasy League</a></li>
               <li><a href="#" className="hover:text-white">Press</a></li>
               <li><a href="#" className="hover:text-white">Contact</a></li>

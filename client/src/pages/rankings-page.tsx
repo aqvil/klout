@@ -31,13 +31,21 @@ export default function RankingsPage() {
   const itemsPerPage = 10;
 
   // Fetch all rankings data
-  const { data: rankingsData, isLoading } = useQuery<PlayerWithStats[]>({
+  const { data: rankingsResponse, isLoading } = useQuery<{
+    players: PlayerWithStats[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalPlayers: number;
+      playersPerPage: number;
+    };
+  }>({
     queryKey: ["/api/rankings"],
   });
 
   // Filter and sort the data based on user selections
-  const filteredAndSortedData = rankingsData
-    ? rankingsData
+  const filteredAndSortedData = rankingsResponse?.players
+    ? rankingsResponse.players
         .filter((item) => {
           // Filter by search term (case insensitive)
           if (searchTerm) {
