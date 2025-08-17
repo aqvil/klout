@@ -31,6 +31,13 @@ A full-stack web application that tracks and analyzes soccer players' global inf
 6. **Real-time Updates**: Automatic data refreshing from external APIs
 
 ## Recent Changes
+- **2025-08-17**: Expanded player database and fixed API limitations
+  - Enhanced design system with comprehensive color tokens using proper HSL format
+  - Fixed UI component consistency across buttons, cards, and navigation elements
+  - Applied cohesive visual language using design tokens throughout application
+  - Expanded player database from 20 to 84+ world-class players including top performers from major leagues
+  - Fixed database import functionality to load comprehensive player data
+  - Resolved API limitation that was only pulling 20 players instead of full database
 - **2025-01-17**: Migrated from Replit Agent to Replit environment
   - Set up PostgreSQL database with all required tables
   - Fixed frontend API response handling for rankings endpoint
