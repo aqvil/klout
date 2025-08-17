@@ -105,7 +105,7 @@ export default function RankingsPage() {
   // Get sort icon
   const getSortIcon = (column: SortOption) => {
     if (sortBy !== column) {
-      return <ArrowRight className="ml-1 h-4 w-4 text-neutral-400" />;
+      return <ArrowRight className="ml-1 h-4 w-4 text-muted-foreground/60" />;
     }
     
     return sortDirection === "desc" 
@@ -116,8 +116,8 @@ export default function RankingsPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-neutral-800 mb-4">Player Rankings</h1>
-        <p className="text-neutral-600 max-w-3xl">
+        <h1 className="text-3xl font-bold text-foreground mb-4">Player Rankings</h1>
+        <p className="text-muted-foreground max-w-3xl">
           Explore the comprehensive rankings of soccer players based on their influence score, 
           which combines social media presence, game performance, and fan engagement.
         </p>
@@ -176,36 +176,36 @@ export default function RankingsPage() {
         </div>
       </div>
       
-      <Card className="mb-6">
+      <Card className="card-elevated mb-6">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-neutral-200">
-            <thead className="bg-neutral-100">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Rank</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Player</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Club</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider cursor-pointer" onClick={() => handleSortClick("totalScore")}>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rank</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Player</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Club</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors duration-200" onClick={() => handleSortClick("totalScore")} data-testid="header-total-score">
                   <div className="flex items-center">
                     Influence Score
                     {getSortIcon("totalScore")}
                   </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider cursor-pointer" onClick={() => handleSortClick("socialScore")}>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors duration-200" onClick={() => handleSortClick("socialScore")} data-testid="header-social-score">
                   <div className="flex items-center">
                     Social Media
                     {getSortIcon("socialScore")}
                   </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider cursor-pointer" onClick={() => handleSortClick("performanceScore")}>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors duration-200" onClick={() => handleSortClick("performanceScore")} data-testid="header-performance-score">
                   <div className="flex items-center">
                     Game Performance
                     {getSortIcon("performanceScore")}
                   </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Trend</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trend</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-neutral-200">
+            <tbody className="bg-card divide-y divide-border">
               {isLoading ? (
                 Array(10).fill(0).map((_, index) => (
                   <tr key={index} className="hover:bg-neutral-50">

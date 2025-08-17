@@ -105,27 +105,27 @@ export default function Header() {
   };
   
   return (
-    <header className="bg-primary shadow-md">
+    <header className="bg-primary shadow-lg border-b border-primary/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Link href="/">
+              <Link href="/" data-testid="link-home">
                 <KloutLogo variant="light" size="md" />
               </Link>
             </div>
             <nav className="hidden md:ml-10 md:flex space-x-8">
-              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'text-primary-foreground border-b-2 border-secondary' : 'text-primary-foreground/80 hover:text-primary-foreground'} px-3 py-2 text-sm font-medium transition-colors duration-200`} data-testid="link-rankings">
                 Rankings
               </Link>
-              <Link href="/players" className={`${isActiveLink('/players') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+              <Link href="/players" className={`${isActiveLink('/players') ? 'text-primary-foreground border-b-2 border-secondary' : 'text-primary-foreground/80 hover:text-primary-foreground'} px-3 py-2 text-sm font-medium transition-colors duration-200`} data-testid="link-players">
                 Players
               </Link>
-              <Link href="/about" className={`${isActiveLink('/about') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+              <Link href="/about" className={`${isActiveLink('/about') ? 'text-primary-foreground border-b-2 border-secondary' : 'text-primary-foreground/80 hover:text-primary-foreground'} px-3 py-2 text-sm font-medium transition-colors duration-200`} data-testid="link-about">
                 About
               </Link>
               {user?.isAdmin && (
-                <Link href="/admin" className={`${isActiveLink('/admin') ? 'text-white border-b-2 border-secondary' : 'text-neutral-300 hover:text-white'} px-3 py-2 text-sm font-medium`}>
+                <Link href="/admin" className={`${isActiveLink('/admin') ? 'text-primary-foreground border-b-2 border-secondary' : 'text-primary-foreground/80 hover:text-primary-foreground'} px-3 py-2 text-sm font-medium transition-colors duration-200`} data-testid="link-admin">
                   Admin
                 </Link>
               )}
@@ -140,16 +140,18 @@ export default function Header() {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   placeholder="Search players..." 
-                  className="bg-white/10 text-white placeholder-neutral-300 border border-transparent focus:border-secondary focus:ring-0 rounded-lg px-4 py-2 text-sm" 
+                  className="bg-primary-foreground/10 text-primary-foreground placeholder-primary-foreground/60 border border-primary-foreground/20 focus:border-secondary focus:ring-1 focus:ring-secondary rounded-lg px-4 py-2 text-sm transition-colors duration-200" 
+                  data-testid="input-search"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-neutral-300" />
+                  <Search className="h-4 w-4 text-primary-foreground/60" />
                 </div>
                 
                 {showSearchResults && (
                   <div 
                     ref={searchResultsRef}
-                    className="absolute z-50 mt-2 w-full bg-white rounded-md shadow-lg overflow-hidden"
+                    className="absolute z-50 mt-2 w-full bg-card border border-border rounded-lg shadow-xl overflow-hidden"
+                    data-testid="dropdown-search-results"
                   >
                     <div className="max-h-60 overflow-y-auto">
                       {searchResults.map((player) => (
@@ -161,10 +163,10 @@ export default function Header() {
                             setSearchQuery("");
                           }}
                         >
-                          <div className="flex items-center px-4 py-3 hover:bg-neutral-100 cursor-pointer">
+                          <div className="flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors duration-200">
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 
-                                className="h-10 w-10 rounded-full object-cover" 
+                                className="h-10 w-10 rounded-full object-cover border border-border" 
                                 src={player.profileImg} 
                                 alt={player.name}
                                 onError={(e) => {
@@ -172,11 +174,12 @@ export default function Header() {
                                   target.onerror = null;
                                   target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&size=100&background=random`;
                                 }}
+                                data-testid={`img-search-result-${player.id}`}
                               />
                             </div>
                             <div className="ml-3">
-                              <p className="text-sm font-medium text-neutral-900">{player.name}</p>
-                              <p className="text-xs text-neutral-500">{player.team} • {player.position}</p>
+                              <p className="text-sm font-medium text-foreground" data-testid={`text-search-name-${player.id}`}>{player.name}</p>
+                              <p className="text-xs text-muted-foreground">{player.team} • {player.position}</p>
                             </div>
                           </div>
                         </Link>
@@ -189,12 +192,12 @@ export default function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-2 bg-white/10 hover:bg-white/20">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors duration-200" data-testid="button-user-menu">
                     <Avatar className="h-8 w-8">
                       {profile?.avatarUrl ? (
                         <AvatarImage src={profile.avatarUrl} alt={profile.displayName || user.username} />
                       ) : (
-                        <AvatarFallback className="bg-secondary text-white text-sm">
+                        <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
                           {user.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       )}
@@ -240,7 +243,7 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <Link href="/auth">
-                <Button className="ml-4 bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-lg text-sm font-medium">
+                <Button className="ml-4 btn-secondary px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200" data-testid="button-sign-in">
                   Sign In
                 </Button>
               </Link>
@@ -249,8 +252,9 @@ export default function Header() {
           <div className="md:hidden flex items-center">
             <button 
               type="button" 
-              className="text-white"
+              className="text-primary-foreground hover:text-primary-foreground/80 transition-colors duration-200 p-2"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              data-testid="button-mobile-menu"
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -263,19 +267,19 @@ export default function Header() {
         
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-3 border-t border-white/10">
+          <div className="md:hidden py-3 border-t border-primary-foreground/10">
             <div className="space-y-1 pb-3">
-              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+              <Link href="/rankings" className={`${isActiveLink('/rankings') ? 'bg-primary-foreground/10 text-primary-foreground' : 'text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-primary-foreground'} block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`} data-testid="mobile-link-rankings">
                 Rankings
               </Link>
-              <Link href="/players" className={`${isActiveLink('/players') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+              <Link href="/players" className={`${isActiveLink('/players') ? 'bg-primary-foreground/10 text-primary-foreground' : 'text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-primary-foreground'} block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`} data-testid="mobile-link-players">
                 Players
               </Link>
-              <Link href="/about" className={`${isActiveLink('/about') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+              <Link href="/about" className={`${isActiveLink('/about') ? 'bg-primary-foreground/10 text-primary-foreground' : 'text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-primary-foreground'} block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`} data-testid="mobile-link-about">
                 About
               </Link>
               {user?.isAdmin && (
-                <Link href="/admin" className={`${isActiveLink('/admin') ? 'bg-white/10 text-white' : 'text-neutral-300 hover:bg-white/5 hover:text-white'} block px-3 py-2 rounded-md text-base font-medium`}>
+                <Link href="/admin" className={`${isActiveLink('/admin') ? 'bg-primary-foreground/10 text-primary-foreground' : 'text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-primary-foreground'} block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`} data-testid="mobile-link-admin">
                   Admin
                 </Link>
               )}
